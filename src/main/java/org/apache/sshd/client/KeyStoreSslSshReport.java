@@ -840,17 +840,12 @@ public class KeyStoreSslSshReport {
 
 	private static Entry<String, String> toEntry(final String string) {
 		//
-		Field field = null;
+		final Field field = testAndApply(x -> size(x) == 1,
+				collect(filter(
+						stream(testAndApply(Objects::nonNull, getClass(string), FieldUtils::getAllFieldsList, null)),
+						f -> Objects.equals(getName(f), VALUE)), Collectors.toList()),
+				x -> get(x, 0), null);
 		//
-		if (field == null) {
-			//
-			field = testAndApply(x -> size(x) == 1, collect(
-					filter(stream(testAndApply(Objects::nonNull, getClass(string), FieldUtils::getAllFieldsList, null)),
-							f -> Objects.equals(getName(f), VALUE)),
-					Collectors.toList()), x -> get(x, 0), null);
-			//
-		} // if
-			//
 		if (string != null && field != null && Narcissus.getField(string, field) == null) {
 			//
 			return null;
