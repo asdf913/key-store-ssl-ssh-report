@@ -111,6 +111,8 @@ public class KeyStoreSslSshReport {
 
 	private static final String DELEGATE = "delegate";
 
+	private static final String PASSWORD = "password";
+
 	private static final Logger LOG = LoggerFactory.getLogger(KeyStoreSslSshReport.class);
 
 	public static void main(final String[] args) throws Exception {
@@ -128,7 +130,7 @@ public class KeyStoreSslSshReport {
 			info(LOG,
 					perform(testAndApply(Objects::nonNull, get(map, "host"),
 							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
-							new BasicCredentialsImpl(get(map, "user"), get(map, "password")),
+							new BasicCredentialsImpl(get(map, "user"), get(map, PASSWORD)),
 							testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
 							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url")));
 			//
@@ -226,7 +228,7 @@ public class KeyStoreSslSshReport {
 											NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
 									null),
 							new BasicCredentialsImpl(Objects.toString(evaluate(xp, "user", node)),
-									Objects.toString(evaluate(xp, "password", node))),
+									Objects.toString(evaluate(xp, PASSWORD, node))),
 							testAndApply(StringUtils::isNotBlank, Objects.toString(evaluate(xp, "keyPath", node)),
 									File::new, null),
 							getKey(entry), toCharArray(getValue(entry)), url));
@@ -250,7 +252,7 @@ public class KeyStoreSslSshReport {
 			//
 			put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new),
 					Objects.toString(evaluate(xp, "path", node = instance.item(i))),
-					getTextContent(cast(Node.class, evaluate(xp, "password", node, XPathConstants.NODE))));
+					getTextContent(cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE))));
 			//
 		} // for
 			//
