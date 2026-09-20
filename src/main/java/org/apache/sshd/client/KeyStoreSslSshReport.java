@@ -119,7 +119,7 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
 				//
-				testAndAccept(x -> x != null && x.exists() && x.isFile(),
+				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)),
 						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
 						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
 				//
@@ -167,6 +167,14 @@ public class KeyStoreSslSshReport {
 			//
 		} // try
 			//
+	}
+
+	private static boolean exists(final File instance) {
+		return instance != null && instance.getPath() != null && instance.exists();
+	}
+
+	private static boolean isFile(final File instance) {
+		return instance != null && instance.getPath() != null && instance.isFile();
 	}
 
 	private static Path toPath(final File instance) {

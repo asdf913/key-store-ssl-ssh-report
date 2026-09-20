@@ -83,7 +83,7 @@ public class KeyStoreSslSshReportTest {
 	private static Method METHOD_GET_NAME, METHOD_GET_CERTIFICATE, METHOD_LOAD, METHOD_IS_KEY_ENTRY,
 			METHOD_IS_CERTIFICATE_ENTRY, METHOD_IS_VALID, METHOD_FORMAT, METHOD_TO_CHAR_ARRAY,
 			METHOD_LONGEST_COMMON_SUB_STRING, METHOD_SUBSTRACT, METHOD_INFO2, METHOD_INFO3, METHOD_NEW_DOCUMENT_BUILDER,
-			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_TO_PATH = null;
+			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_TO_PATH, METHOD_IS_FILE = null;
 
 	private static Class<?> CLASS_RESULT = null;
 
@@ -131,6 +131,8 @@ public class KeyStoreSslSshReportTest {
 				.setAccessible(true);
 		//
 		(METHOD_TO_PATH = clz.getDeclaredMethod("toPath", File.class)).setAccessible(true);
+		//
+		(METHOD_IS_FILE = clz.getDeclaredMethod("isFile", File.class)).setAccessible(true);
 		//
 	}
 
@@ -677,6 +679,9 @@ public class KeyStoreSslSshReportTest {
 		KeyStoreSslSshReport.main(new String[] { "host=" + host, "port=2222", "user=" + user, "password=password",
 				"file= ", "keyPath=." });
 		//
+		KeyStoreSslSshReport.main(new String[] { "host=" + host, "port=2222", "user=" + user, "password=password",
+				"file= ", "keyPath=1" });
+		//
 		final File file = new File("/etc/ssl/certs/java/cacerts");
 		//
 		if (file.exists()) {
@@ -828,6 +833,13 @@ public class KeyStoreSslSshReportTest {
 	public void testToPath() throws IllegalAccessException, InvocationTargetException {
 		//
 		Assert.assertNotNull(invoke(METHOD_TO_PATH, null, new File(".")));
+		//
+	}
+
+	@Test
+	public void testIsFile() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertEquals(invoke(METHOD_IS_FILE, null, new File("pom.xml")), Boolean.TRUE);
 		//
 	}
 
