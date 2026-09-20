@@ -55,6 +55,9 @@ import org.apache.commons.validator.routines.DomainValidator;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
+import org.apache.sshd.common.auth.BasicCredentialsProvider;
+import org.apache.sshd.common.auth.PasswordHolder;
+import org.apache.sshd.common.auth.UsernameHolder;
 import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.common.future.VerifiableFuture;
@@ -75,6 +78,7 @@ import org.testng.annotations.Test;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
@@ -291,6 +295,14 @@ public class KeyStoreSslSshReportTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof UsernameHolder && Objects.equals(name, "getUsername")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof PasswordHolder && Objects.equals(name, "getPassword")) {
+				//
+				return null;
+				//
 			} // if
 				//
 			throw new Throwable(name);
@@ -456,7 +468,10 @@ public class KeyStoreSslSshReportTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
-							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class }))
+							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { HostAndPort.class, BasicCredentialsProvider.class,
+													File.class, String.class, char[].class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
 				//
@@ -644,7 +659,10 @@ public class KeyStoreSslSshReportTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
-							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class }))
+							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { HostAndPort.class, BasicCredentialsProvider.class,
+													File.class, String.class, char[].class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "iif"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Boolean.TYPE, Object.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),

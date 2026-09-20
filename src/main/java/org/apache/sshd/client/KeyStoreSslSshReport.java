@@ -70,6 +70,9 @@ import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
+import org.apache.sshd.common.auth.BasicCredentialsImpl;
+import org.apache.sshd.common.auth.BasicCredentialsProvider;
+import org.apache.sshd.common.auth.UsernameHolder;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
 import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.future.VerifiableFuture;
@@ -82,6 +85,8 @@ import org.apache.sshd.sftp.client.fs.SftpFileSystem;
 import org.d2ab.function.ObjIntPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 import io.github.toolfactory.narcissus.Narcissus;
 
@@ -99,71 +104,13 @@ public class KeyStoreSslSshReport {
 		//
 		final Map<String, String> map = toMap(args);
 		//
-		final String host = get(map, "host");
+		info(LOG,
+				perform(testAndApply(Objects::nonNull, get(map, "host"),
+						x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
+						new BasicCredentialsImpl(get(map, "user"), get(map, "password")),
+						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null), get(map, "file"),
+						toCharArray(get(map, "keyStorePassword")), get(map, "url")));
 		//
-		final String user = get(map, "user");
-		//
-		final String file = get(map, "file");
-		//
-		byte[] bs = null;
-		//
-		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
-			//
-			setServerKeyVerifier(sshClient, AcceptAllServerKeyVerifier.INSTANCE);
-			//
-			start(sshClient);
-			//
-			try (final ClientSession clientSession = testAndApply((a, b) -> Boolean.logicalAnd(a != null, b != null),
-					user, host,
-					(a, b) -> getSession(verify(connect(sshClient, a, b, NumberUtils.toInt(get(map, "port"), 22)))),
-					null)) {
-				//
-				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
-				//
-				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)),
-						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
-				//
-				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
-						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
-						: null;
-						final InputStream is = testAndApply(x -> x != null && StringUtils.isNotBlank(file),
-								getPath(sftpFileSystem, file), Files::newInputStream, null);
-						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-					//
-					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
-					//
-					bs = baos.toByteArray();
-					//
-				} // try
-					//
-			} // try
-				//
-		} // try
-			//
-		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
-			//
-			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-			//
-			testAndRun(is != null, () -> load(keyStore, is, toCharArray(get(map, "keyStorePassword"))));
-			//
-			final Result result = perform(keyStore, get(map, "url"));
-			//
-			final Long difference = result != null ? result.difference : null;
-			//
-			info(LOG, "Host    {}={}", iif(longValue(difference, 0) > 0, StringUtils.repeat(' ', 2), ""),
-					StringUtils.defaultString(host));
-			//
-			info(LOG, "User    {}={}", iif(longValue(difference, 0) > 0, StringUtils.repeat(' ', 2), ""),
-					StringUtils.defaultString(user));
-			//
-			info(LOG, "File    {}={}", iif(longValue(difference, 0) > 0, StringUtils.repeat(' ', 2), ""),
-					StringUtils.defaultString(file));
-			//
-			info(LOG, result);
-			//
-		} // try
-			//
 	}
 
 	private static <T, U, E extends Exception> void testAndAccept(final BiPredicate<T, U> predicate, final T t,
@@ -309,41 +256,111 @@ public class KeyStoreSslSshReport {
 		return instance != null ? instance.longValue() : defaultValue;
 	}
 
-	private static Result perform(final KeyStore keyStore, final String url) throws KeyStoreException, IOException {
+	private static Result perform(final HostAndPort hostAndPort,
+			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
+			final char[] keyStorePassword, final String url) throws Exception {
 		//
-		String alias, lcs = null;
+		byte[] bs = null;
 		//
-		Certificate certificate = null;
-		//
-		X509Certificate x509Certificate = null;
-		//
-		Date notAfter = null;
-		//
+		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
+			//
+			setServerKeyVerifier(sshClient, AcceptAllServerKeyVerifier.INSTANCE);
+			//
+			start(sshClient);
+			//
+			try (final ClientSession clientSession = testAndApply((a, b) -> Boolean.logicalAnd(a != null, b != null),
+					getUsername(basicCredentialsProvider), getHost(hostAndPort), (a,
+							b) -> getSession(verify(connect(sshClient, a, b,
+									hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : 22))),
+					null)) {
+				//
+				testAndAccept(Objects::nonNull,
+						basicCredentialsProvider != null ? basicCredentialsProvider.getPassword() : null,
+						x -> addPasswordIdentity(clientSession, x));
+				//
+				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
+				//
+				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
+						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
+						: null;
+						final InputStream is = testAndApply(x -> x != null && StringUtils.isNotBlank(keyStoreFile),
+								getPath(sftpFileSystem, keyStoreFile), Files::newInputStream, null);
+						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+					//
+					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
+					//
+					bs = baos.toByteArray();
+					//
+				} // try
+					//
+			} // try
+				//
+		} // try
+			//
 		Map<String, X509Certificate> map = null;
 		//
-		final Enumeration<String> aliases = aliases(keyStore);
-		//
-		while (hasMoreElements(aliases)) {
+		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
 			//
-			if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
-					&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
-					&& (x509Certificate = (X509Certificate) certificate) != null
-					&& isValid(DomainValidator.getInstance(),
-							lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)), url))
-					&& ((notAfter = getNotAfter(get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
-							|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
+			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+			//
+			testAndRun(is != null, () -> load(keyStore, is, keyStorePassword));
+			//
+			String alias, lcs = null;
+			//
+			Certificate certificate = null;
+			//
+			X509Certificate x509Certificate = null;
+			//
+			Date notAfter = null;
+			//
+			final Enumeration<String> aliases = aliases(keyStore);
+			//
+			while (hasMoreElements(aliases)) {
 				//
-				put(map, lcs, x509Certificate);
+				if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
+						&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
+						&& (x509Certificate = (X509Certificate) certificate) != null
+						&& isValid(DomainValidator.getInstance(),
+								lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)), url))
+						&& ((notAfter = getNotAfter(
+								get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
+								|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
+					//
+					put(map, lcs, x509Certificate);
+					//
+				} // if
+					//
+			} // while
 				//
-			} // if
-				//
-		} // while
+		} // try
 			//
 		final String longest = orElse(max(stream(keySet(map)), Comparator.comparingInt(StringUtils::length)), "");
 		//
-		return perform(url, collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
-				Collectors.toMap(x -> getKey(x), x -> getValue(x))));
+		final Result result = perform(url,
+				collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
+						Collectors.toMap(x -> getKey(x), x -> getValue(x))));
 		//
+		if (result != null) {
+			//
+			result.hostAndPort = hostAndPort;
+			//
+			result.usernameHolder = basicCredentialsProvider;
+			//
+			result.keyStoreFile = keyStoreFile;
+			//
+		} // if
+			//
+		return result;
+		//
+	}
+
+	private static String getUsername(final UsernameHolder instance) {
+		return instance != null ? instance.getUsername() : null;
+	}
+
+	private static String getHost(final HostAndPort instance) {
+		return instance != null ? instance.getHost() : null;
 	}
 
 	private static void info(final Logger logger, final Result result) {
@@ -353,6 +370,14 @@ public class KeyStoreSslSshReport {
 		final Long difference = result != null ? result.difference : null;
 		//
 		final String padding = iif(longValue(difference, 0) > 0, StringUtils.repeat(' ', 2), "");
+		//
+		info(LOG, "Host    {}={}", padding,
+				StringUtils.defaultString(getHost(result != null ? result.hostAndPort : null)));
+		//
+		info(LOG, "User    {}={}", padding,
+				StringUtils.defaultString(getUsername(result != null ? result.usernameHolder : null)));
+		//
+		info(LOG, "File    {}={}", padding, StringUtils.defaultString(result != null ? result.keyStoreFile : null));
 		//
 		info(logger, "URL     {}={}", padding, StringUtils.defaultString(result != null ? result.url : null));
 		//
@@ -378,7 +403,11 @@ public class KeyStoreSslSshReport {
 
 	private static class Result {
 
-		private String url;
+		private HostAndPort hostAndPort;
+
+		private UsernameHolder usernameHolder;
+
+		private String keyStoreFile, url;
 
 		@Target(ElementType.FIELD)
 		@Retention(RetentionPolicy.RUNTIME)
