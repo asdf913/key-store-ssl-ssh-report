@@ -2,6 +2,7 @@ package org.apache.sshd.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.ElementType;
@@ -119,9 +120,9 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
 				//
-				testAndAccept(Objects::nonNull,
-						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), Paths::get, null),
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, x, null));
+				testAndAccept(x -> x != null && x.exists() && x.isFile(),
+						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, x != null ? x.toPath() : null, null));
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)

@@ -672,6 +672,9 @@ public class KeyStoreSslSshReportTest {
 		KeyStoreSslSshReport.main(new String[] { "host=" + host, "port=2222", "user=" + user, "password=password",
 				"file= ", "keyPath= " });
 		//
+		KeyStoreSslSshReport.main(new String[] { "host=" + host, "port=2222", "user=" + user, "password=password",
+				"file= ", "keyPath=." });
+		//
 		final File file = new File("/etc/ssl/certs/java/cacerts");
 		//
 		if (file.exists()) {
