@@ -15,8 +15,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -66,8 +69,11 @@ import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
+import org.apache.sshd.common.config.keys.FilePasswordProvider;
+import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.future.VerifiableFuture;
 import org.apache.sshd.common.session.Session;
+import org.apache.sshd.common.session.SessionContext;
 import org.apache.sshd.common.session.SessionHolder;
 import org.apache.sshd.putty.PuttyKeyUtils;
 import org.apache.sshd.sftp.client.SftpClientFactory;
@@ -117,7 +123,7 @@ public class KeyStoreSslSshReport {
 				//
 				if (keyPath != null) {
 					//
-					PuttyKeyUtils.DEFAULT_INSTANCE.loadKeyPairs(null, Paths.get(keyPath), null);
+					loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, Paths.get(keyPath), null);
 					//
 				} // if
 					//
@@ -165,6 +171,12 @@ public class KeyStoreSslSshReport {
 			//
 		} // try
 			//
+	}
+
+	private static Collection<KeyPair> loadKeyPairs(final KeyPairResourceLoader instance, final SessionContext session,
+			final Path path, final FilePasswordProvider passwordProvider, final OpenOption... options)
+			throws IOException, GeneralSecurityException {
+		return instance != null ? instance.loadKeyPairs(session, path, passwordProvider, options) : null;
 	}
 
 	private static <T, U, R, E extends Exception> R testAndApply(final BiPredicate<T, U> predicate, final T t,

@@ -54,6 +54,7 @@ import org.apache.commons.validator.routines.DomainValidator;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
+import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.common.future.VerifiableFuture;
 import org.apache.sshd.common.session.SessionHolder;
@@ -275,6 +276,10 @@ public class KeyStoreSslSshReportTest {
 				return null;
 				//
 			} else if (proxy instanceof SftpClientFactory && Objects.equals(name, "createSftpFileSystem")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof KeyPairResourceLoader && Objects.equals(name, "loadKeyPairs")) {
 				//
 				return null;
 				//
