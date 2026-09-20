@@ -121,7 +121,7 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(x -> x != null && x.exists() && x.isFile(),
 						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, x != null ? x.toPath() : null, null));
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
@@ -167,6 +167,10 @@ public class KeyStoreSslSshReport {
 			//
 		} // try
 			//
+	}
+
+	private static Path toPath(final File instance) {
+		return instance != null && instance.getPath() != null ? instance.toPath() : null;
 	}
 
 	private static Collection<KeyPair> loadKeyPairs(final KeyPairResourceLoader instance, final SessionContext session,
