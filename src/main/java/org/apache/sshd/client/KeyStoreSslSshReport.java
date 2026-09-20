@@ -120,8 +120,9 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
 				//
-				testAndAccept(Objects::nonNull, get(map, "keyPath"),
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, Paths.get(x), null));
+				testAndAccept(Objects::nonNull,
+						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), Paths::get, null),
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, x, null));
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
