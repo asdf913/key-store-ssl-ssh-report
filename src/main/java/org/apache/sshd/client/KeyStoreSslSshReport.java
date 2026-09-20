@@ -48,6 +48,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -114,8 +115,12 @@ public class KeyStoreSslSshReport {
 								getPath(sftpFileSystem, file), Files::newInputStream, null);
 						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 					//
-					transferTo(is, baos);
-					//
+					if (is != null) {
+						//
+						IOUtils.copy(is, baos);
+						//
+					} // if
+						//
 					bs = baos.toByteArray();
 					//
 				} // try
@@ -158,10 +163,6 @@ public class KeyStoreSslSshReport {
 	private static <T, U, R, E extends Exception> R apply(final FailableBiFunction<T, U, R, E> instance, final T t,
 			final U u) throws E {
 		return instance != null ? instance.apply(t, u) : null;
-	}
-
-	private static long transferTo(final InputStream instance, final OutputStream os) throws IOException {
-		return instance != null ? instance.transferTo(os) : 0;
 	}
 
 	private static Path getPath(final FileSystem instance, final String first, final String... more) {
@@ -742,7 +743,7 @@ public class KeyStoreSslSshReport {
 			//
 			if (stream != null && stream.markSupported()) {
 				//
-				final byte[] bs = stream.readAllBytes();
+				final byte[] bs = IOUtils.toByteArray(stream);
 				//
 				if (bs == null || bs.length == 0) {
 					//

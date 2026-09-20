@@ -15,6 +15,7 @@ import java.lang.reflect.Method;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
@@ -337,7 +338,7 @@ public class KeyStoreSslSshReportTest {
 				//
 			sshServer.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory()));
 			//
-			sshServer.setFileSystemFactory(new VirtualFileSystemFactory(Path.of("/")));
+			sshServer.setFileSystemFactory(new VirtualFileSystemFactory(Paths.get("/")));
 			//
 			sshServer.start();
 			//
@@ -586,18 +587,16 @@ public class KeyStoreSslSshReportTest {
 					//
 				} else if (Objects.equals(parameterType, DocumentBuilderFactory.class)) {
 					//
-					add(collection, Narcissus.allocateInstance(getClass(DocumentBuilderFactory.newDefaultInstance())));
+					add(collection, Narcissus.allocateInstance(getClass(DocumentBuilderFactory.newInstance())));
 					//
 				} else if (Objects.equals(parameterType, XPathFactory.class)) {
 					//
-					add(collection, Narcissus.allocateInstance(getClass(XPathFactory.newDefaultInstance())));
+					add(collection, Narcissus.allocateInstance(getClass(XPathFactory.newInstance())));
 					//
 				} else if (Objects.equals(parameterType, DocumentBuilder.class)) {
 					//
-					add(collection,
-							Narcissus
-									.allocateInstance(getClass(Narcissus.invokeStaticMethod(METHOD_NEW_DOCUMENT_BUILDER,
-											DocumentBuilderFactory.newDefaultInstance()))));
+					add(collection, Narcissus.allocateInstance(getClass(Narcissus
+							.invokeStaticMethod(METHOD_NEW_DOCUMENT_BUILDER, DocumentBuilderFactory.newInstance()))));
 					//
 				} else if (Objects.equals(parameterType, FileSystem.class)) {
 					//
