@@ -54,6 +54,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.function.FailableBiConsumer;
 import org.apache.commons.lang3.function.FailableBiFunction;
 import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
@@ -130,12 +131,8 @@ public class KeyStoreSslSshReport {
 								getPath(sftpFileSystem, file), Files::newInputStream, null);
 						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 					//
-					if (is != null) {
-						//
-						IOUtils.copy(is, baos);
-						//
-					} // if
-						//
+					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
+					//
 					bs = baos.toByteArray();
 					//
 				} // try
@@ -167,6 +164,13 @@ public class KeyStoreSslSshReport {
 			//
 		} // try
 			//
+	}
+
+	private static <T, U, E extends Exception> void testAndAccept(final BiPredicate<T, U> predicate, final T t,
+			final U u, final FailableBiConsumer<T, U, E> consumer) throws E {
+		if (predicate != null && predicate.test(t, u) && consumer != null) {
+			consumer.accept(t, u);
+		}
 	}
 
 	private static boolean exists(final File instance) {

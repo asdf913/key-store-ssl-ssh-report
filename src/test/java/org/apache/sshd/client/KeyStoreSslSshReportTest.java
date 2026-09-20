@@ -46,6 +46,7 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.function.FailableBiConsumer;
 import org.apache.commons.lang3.function.FailableBiFunction;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailableRunnable;
@@ -83,7 +84,7 @@ public class KeyStoreSslSshReportTest {
 	private static Method METHOD_GET_NAME, METHOD_GET_CERTIFICATE, METHOD_LOAD, METHOD_IS_KEY_ENTRY,
 			METHOD_IS_CERTIFICATE_ENTRY, METHOD_IS_VALID, METHOD_FORMAT, METHOD_TO_CHAR_ARRAY,
 			METHOD_LONGEST_COMMON_SUB_STRING, METHOD_SUBSTRACT, METHOD_INFO2, METHOD_INFO3, METHOD_NEW_DOCUMENT_BUILDER,
-			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_TO_PATH, METHOD_IS_FILE = null;
+			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_TO_PATH, METHOD_IS_FILE, METHOD_TEST_AND_ACCEPT = null;
 
 	private static Class<?> CLASS_RESULT = null;
 
@@ -133,6 +134,9 @@ public class KeyStoreSslSshReportTest {
 		(METHOD_TO_PATH = clz.getDeclaredMethod("toPath", File.class)).setAccessible(true);
 		//
 		(METHOD_IS_FILE = clz.getDeclaredMethod("isFile", File.class)).setAccessible(true);
+		//
+		(METHOD_TEST_AND_ACCEPT = clz.getDeclaredMethod("testAndAccept", BiPredicate.class, Object.class, Object.class,
+				FailableBiConsumer.class)).setAccessible(true);
 		//
 	}
 
@@ -313,6 +317,8 @@ public class KeyStoreSslSshReportTest {
 
 	private SshServer sshServer = null;
 
+	private IH ih = null;
+
 	@BeforeMethod
 	void beforeMethod() throws IllegalAccessException, InvocationTargetException, KeyStoreException, IOException {
 		//
@@ -352,6 +358,8 @@ public class KeyStoreSslSshReportTest {
 			//
 		} // if
 			//
+		ih = new IH();
+		//
 	}
 
 	@AfterMethod
@@ -497,8 +505,6 @@ public class KeyStoreSslSshReportTest {
 		String toString, name = null;
 		//
 		Collection<Object> collection = null;
-		//
-		IH ih = null;
 		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
@@ -840,6 +846,20 @@ public class KeyStoreSslSshReportTest {
 	public void testIsFile() throws IllegalAccessException, InvocationTargetException {
 		//
 		Assert.assertEquals(invoke(METHOD_IS_FILE, null, new File("pom.xml")), Boolean.TRUE);
+		//
+	}
+
+	@Test
+	public void testTestAndAccept() throws IllegalAccessException, InvocationTargetException {
+		//
+		if ((ih = ObjectUtils.getIfNull(ih, IH::new)) != null) {
+			//
+			ih.test = Boolean.TRUE;
+			//
+		} // if
+			//
+		Assert.assertNotNull(
+				invoke(METHOD_TEST_AND_ACCEPT, null, Reflection.newProxy(BiPredicate.class, ih), null, null, null));
 		//
 	}
 
