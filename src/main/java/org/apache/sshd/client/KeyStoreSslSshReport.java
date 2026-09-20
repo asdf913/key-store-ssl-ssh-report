@@ -132,7 +132,7 @@ public class KeyStoreSslSshReport {
 							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
 							new BasicCredentialsImpl(get(map, "user"), get(map, PASSWORD)),
 							testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
-							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url")));
+							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url"), null));
 			//
 		} // if
 			//
@@ -204,6 +204,8 @@ public class KeyStoreSslSshReport {
 		//
 		Map<String, String> map = null;
 		//
+		Map<String, Entry<String, Date>> entries = null;
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -232,7 +234,8 @@ public class KeyStoreSslSshReport {
 											cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))),
 							testAndApply(StringUtils::isNotBlank, Objects.toString(evaluate(xp, "keyPath", node)),
 									File::new, null),
-							getKey(entry), toCharArray(getValue(entry)), url));
+							getKey(entry), toCharArray(getValue(entry)), url,
+							entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)));
 					//
 				} // for
 					//
@@ -444,7 +447,8 @@ public class KeyStoreSslSshReport {
 
 	private static Result perform(final HostAndPort hostAndPort,
 			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
-			final char[] keyStorePassword, final String url) throws Exception {
+			final char[] keyStorePassword, final String url, final Map<String, Entry<String, Date>> entries)
+			throws Exception {
 		//
 		byte[] bs = null;
 		//
@@ -526,7 +530,8 @@ public class KeyStoreSslSshReport {
 		//
 		final Result result = perform(url,
 				collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
-						Collectors.toMap(x -> getKey(x), x -> getValue(x))));
+						Collectors.toMap(x -> getKey(x), x -> getValue(x))),
+				entries);
 		//
 		if (result != null) {
 			//
@@ -614,7 +619,8 @@ public class KeyStoreSslSshReport {
 
 	}
 
-	private static Result perform(final String url, final Map<String, X509Certificate> map) throws IOException {
+	private static Result perform(final String url, final Map<String, X509Certificate> map,
+			final Map<String, Entry<String, Date>> entries) throws IOException {
 		//
 		final Result result = new Result();
 		//
@@ -634,7 +640,13 @@ public class KeyStoreSslSshReport {
 					//
 				} // if
 					//
-				result.urlDate = Pair.of(getKey(temp = getEntry(url)), getValue(temp));
+				if ((temp = get(entries, url)) == null) {
+					//
+					put(entries, url, temp = getEntry(url));
+					//
+				} // if
+					//
+				result.urlDate = Pair.of(getKey(temp), getValue(temp));
 				//
 				result.difference = substract(getValue(temp),
 						getValue(result.keyStoreDate = Pair.of(getKey(entry), getNotAfter(x509Certificate))));

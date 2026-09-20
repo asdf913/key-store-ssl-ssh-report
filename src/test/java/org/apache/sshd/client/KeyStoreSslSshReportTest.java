@@ -511,12 +511,12 @@ public class KeyStoreSslSshReportTest {
 					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "getEntry"),
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
-							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
 							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
 									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { String.class, Map.class, Map.class })
+									|| Arrays.equals(parameterTypes,
 											new Class<?>[] { HostAndPort.class, BasicCredentialsProvider.class,
-													File.class, String.class, char[].class, String.class }))
+													File.class, String.class, char[].class, String.class, Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
 				//
@@ -702,12 +702,12 @@ public class KeyStoreSslSshReportTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "substract"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Date.class, Date.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
-							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
 							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
 									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { String.class, Map.class, Map.class })
+									|| Arrays.equals(parameterTypes,
 											new Class<?>[] { HostAndPort.class, BasicCredentialsProvider.class,
-													File.class, String.class, char[].class, String.class }))
+													File.class, String.class, char[].class, String.class, Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "iif"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Boolean.TYPE, Object.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
