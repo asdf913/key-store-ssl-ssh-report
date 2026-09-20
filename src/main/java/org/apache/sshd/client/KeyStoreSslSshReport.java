@@ -63,6 +63,7 @@ import org.apache.commons.validator.routines.DomainValidator;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
+import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
 import org.apache.sshd.common.future.VerifiableFuture;
@@ -101,12 +102,8 @@ public class KeyStoreSslSshReport {
 		//
 		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
 			//
-			if (sshClient != null) {
-				//
-				sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
-				//
-			} // if
-				//
+			setServerKeyVerifier(sshClient, AcceptAllServerKeyVerifier.INSTANCE);
+			//
 			start(sshClient);
 			//
 			try (final ClientSession clientSession = testAndApply((a, b) -> Boolean.logicalAnd(a != null, b != null),
@@ -228,6 +225,13 @@ public class KeyStoreSslSshReport {
 	private static void addPasswordIdentity(final ClientAuthenticationManager instance, final String password) {
 		if (instance != null) {
 			instance.addPasswordIdentity(password);
+		}
+	}
+
+	private static void setServerKeyVerifier(final ClientAuthenticationManager instance,
+			final ServerKeyVerifier serverKeyVerifier) {
+		if (instance != null) {
+			instance.setServerKeyVerifier(serverKeyVerifier);
 		}
 	}
 
