@@ -56,6 +56,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.function.FailableBiFunction;
+import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -119,14 +120,9 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
 				//
-				final String keyPath = get(map, "keyPath");
+				testAndAccept(Objects::nonNull, get(map, "keyPath"),
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, Paths.get(x), null));
 				//
-				if (keyPath != null) {
-					//
-					loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, Paths.get(keyPath), null);
-					//
-				} // if
-					//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
 						: null;
@@ -222,13 +218,14 @@ public class KeyStoreSslSshReport {
 		return instance != null ? instance.auth() : null;
 	}
 
-	private static <T> void testAndAccept(final Predicate<T> predicate, final T value, final Consumer<T> consumer) {
+	private static <T, E extends Exception> void testAndAccept(final Predicate<T> predicate, final T value,
+			final FailableConsumer<T, E> consumer) throws E {
 		if (test(predicate, value)) {
 			accept(consumer, value);
 		}
 	}
 
-	private static <T> void accept(final Consumer<T> instance, final T value) {
+	private static <T, E extends Exception> void accept(final FailableConsumer<T, E> instance, final T value) throws E {
 		if (instance != null) {
 			instance.accept(value);
 		}
