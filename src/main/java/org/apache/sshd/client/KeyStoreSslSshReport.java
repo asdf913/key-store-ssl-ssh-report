@@ -17,6 +17,7 @@ import java.net.URLConnection;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -62,11 +63,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.DomainValidator;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.ConnectFuture;
+import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
+import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionCreator;
 import org.apache.sshd.common.future.VerifiableFuture;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionHolder;
+import org.apache.sshd.putty.PuttyKeyUtils;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.sftp.client.fs.SftpFileSystem;
 import org.d2ab.function.ObjIntPredicate;
@@ -99,6 +103,12 @@ public class KeyStoreSslSshReport {
 		//
 		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
 			//
+			if (sshClient != null) {
+				//
+				sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+				//
+			} // if
+				//
 			start(sshClient);
 			//
 			try (final ClientSession clientSession = testAndApply((a, b) -> Boolean.logicalAnd(a != null, b != null),
@@ -108,6 +118,14 @@ public class KeyStoreSslSshReport {
 				//
 				testAndAccept(Objects::nonNull, get(map, "password"), x -> addPasswordIdentity(clientSession, x));
 				//
+				final String keyPath = get(map, "keyPath");
+				//
+				if (keyPath != null) {
+					//
+					PuttyKeyUtils.DEFAULT_INSTANCE.loadKeyPairs(null, Paths.get(keyPath), null);
+					//
+				} // if
+					//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
 						: null;
