@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,6 +76,9 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -88,7 +92,8 @@ public class KeyStoreSslSshReportTest {
 	private static Method METHOD_GET_NAME, METHOD_GET_CERTIFICATE, METHOD_LOAD, METHOD_IS_KEY_ENTRY,
 			METHOD_IS_CERTIFICATE_ENTRY, METHOD_IS_VALID, METHOD_FORMAT, METHOD_TO_CHAR_ARRAY,
 			METHOD_LONGEST_COMMON_SUB_STRING, METHOD_SUBSTRACT, METHOD_INFO2, METHOD_INFO3, METHOD_NEW_DOCUMENT_BUILDER,
-			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_TO_PATH, METHOD_IS_FILE, METHOD_TEST_AND_ACCEPT = null;
+			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_FILTER, METHOD_COLLECT, METHOD_TO_PATH, METHOD_IS_FILE,
+			METHOD_TEST_AND_ACCEPT, METHOD_PERFORM, METHOD_CAST, METHOD_NEW_XPATH, METHOD_EVALUATE = null;
 
 	private static Class<?> CLASS_RESULT = null;
 
@@ -124,13 +129,9 @@ public class KeyStoreSslSshReportTest {
 		(METHOD_TEST_AND_APPLY = clz.getDeclaredMethod("testAndApply", Predicate.class, Object.class,
 				FailableFunction.class, FailableFunction.class)).setAccessible(true);
 		//
-		(METHOD_INFO2 = clz.getDeclaredMethod("info", Logger.class,
-				CLASS_RESULT = testAndApply(x -> x != null && x.size() == 1,
-						Arrays.stream(clz.getDeclaredClasses())
-								.filter(f -> Objects.equals(f != null ? f.getSimpleName() : null, "Result"))
-								.collect(Collectors.toList()),
-						x -> x != null ? x.get(0) : null, null)))
-				.setAccessible(true);
+		(METHOD_FILTER = clz.getDeclaredMethod("filter", Stream.class, Predicate.class)).setAccessible(true);
+		//
+		(METHOD_COLLECT = clz.getDeclaredMethod("collect", Stream.class, Collector.class)).setAccessible(true);
 		//
 		(METHOD_TEST_AND_RUN = clz.getDeclaredMethod("testAndRun", Boolean.TYPE, FailableRunnable.class))
 				.setAccessible(true);
@@ -142,6 +143,50 @@ public class KeyStoreSslSshReportTest {
 		(METHOD_TEST_AND_ACCEPT = clz.getDeclaredMethod("testAndAccept", BiPredicate.class, Object.class, Object.class,
 				FailableBiConsumer.class)).setAccessible(true);
 		//
+		(METHOD_NEW_DOCUMENT_BUILDER = clz.getDeclaredMethod("newDocumentBuilder", DocumentBuilderFactory.class))
+				.setAccessible(true);
+		//
+		(METHOD_PERFORM = clz.getDeclaredMethod("perform", Document.class, XPath.class)).setAccessible(true);
+		//
+		(METHOD_CAST = clz.getDeclaredMethod("cast", Class.class, Object.class)).setAccessible(true);
+		//
+		(METHOD_NEW_XPATH = clz.getDeclaredMethod("newXPath", XPathFactory.class)).setAccessible(true);
+		//
+		(METHOD_EVALUATE = clz.getDeclaredMethod("evaluate", XPath.class, String.class, Object.class))
+				.setAccessible(true);
+		//
+		(METHOD_INFO2 = clz.getDeclaredMethod("info", Logger.class,
+				CLASS_RESULT = testAndApply(x -> x != null && x.size() == 1,
+						collect(filter(Arrays.stream(clz.getDeclaredClasses()),
+								f -> Objects.equals(f != null ? f.getSimpleName() : null, "Result")),
+								Collectors.toList()),
+						x -> x != null ? x.get(0) : null, null)))
+				.setAccessible(true);
+		//
+	}
+
+	private static <T, R, A> R collect(final Stream<T> instance, final Collector<? super T, A, R> collector)
+			throws Throwable {
+		try {
+			return (R) invoke(METHOD_COLLECT, null, instance, collector);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	private static <T> Stream<T> filter(final Stream<T> instance, final Predicate<? super T> predicate)
+			throws Throwable {
+		try {
+			final Object obj = invoke(METHOD_FILTER, null, instance, predicate);
+			if (obj == null) {
+				return null;
+			} else if (obj instanceof Stream) {
+				return (Stream) obj;
+			}
+			throw new Throwable(Objects.toString(getClass(instance)));
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
 	}
 
 	private static <T, R, E extends Throwable> R testAndApply(final Predicate<T> predicate, final T value,
@@ -687,6 +732,14 @@ public class KeyStoreSslSshReportTest {
 	@Test
 	public void testMain() throws Exception {
 		//
+		KeyStoreSslSshReport.main(new String[] { "config=" });
+		//
+		KeyStoreSslSshReport.main(new String[] { "config= " });
+		//
+		KeyStoreSslSshReport.main(new String[] { "config=." });
+		//
+		KeyStoreSslSshReport.main(new String[] { "config=pom.xml" });
+		//
 		final String host = "127.0.0.1";
 		//
 		final String user = "user";
@@ -878,6 +931,66 @@ public class KeyStoreSslSshReportTest {
 			//
 		Assert.assertNull(
 				invoke(METHOD_TEST_AND_ACCEPT, null, Reflection.newProxy(BiPredicate.class, ih), null, null, null));
+		//
+	}
+
+	@Test
+	public void testPeform() throws Throwable {
+		//
+		final DocumentBuilder db = cast(DocumentBuilder.class,
+				Narcissus.invokeStaticMethod(METHOD_NEW_DOCUMENT_BUILDER, DocumentBuilderFactory.newInstance()));
+		//
+		final Document document = db != null ? db.newDocument() : null;
+		//
+		final Node hosts = appendChild(document, createElement(document, "hosts"));
+		//
+		final Node host = appendChild(hosts, createElement(document, "host"));
+		//
+		appendChild(host, createElement(document, "ip"));
+		//
+		appendChild(host, createElement(document, "port"));
+		//
+		appendChild(host, createElement(document, "user"));
+		//
+		appendChild(host, createElement(document, "password"));
+		//
+		Node node = appendChild(host, createElement(document, "urls"));
+		//
+		appendChild(node, createElement(document, "url"));
+		//
+		if ((node = appendChild(host, createElement(document, "keyStores"))) != null
+				&& (node = appendChild(node, createElement(document, "keyStore"))) != null) {
+			//
+			appendChild(node, createElement(document, "path"));
+			//
+		} // if
+			//
+		Assert.assertNull(
+				invoke(METHOD_PERFORM, null, document, invoke(METHOD_NEW_XPATH, null, XPathFactory.newInstance())));
+		//
+	}
+
+	private static Element createElement(final Document instance, final String tagName) throws DOMException {
+		return instance != null ? instance.createElement(tagName) : null;
+	}
+
+	private static Node appendChild(final Node instance, final Node newChild) throws DOMException {
+		return instance != null ? instance.appendChild(newChild) : null;
+	}
+
+	private static <T> T cast(final Class<T> clz, final Object instance) throws Throwable {
+		try {
+			return (T) invoke(METHOD_CAST, null, clz, instance);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	@Test
+	public void testEvaluate() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertNull(
+				invoke(METHOD_EVALUATE, null, invoke(METHOD_NEW_XPATH, null, XPathFactory.newInstance()), null, null));
 		//
 	}
 

@@ -28,6 +28,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -49,6 +50,14 @@ import java.util.stream.Stream;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.auth.x500.X500Principal;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -85,6 +94,10 @@ import org.apache.sshd.sftp.client.fs.SftpFileSystem;
 import org.d2ab.function.ObjIntPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.google.common.net.HostAndPort;
 
@@ -104,13 +117,183 @@ public class KeyStoreSslSshReport {
 		//
 		final Map<String, String> map = toMap(args);
 		//
-		info(LOG,
-				perform(testAndApply(Objects::nonNull, get(map, "host"),
-						x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
-						new BasicCredentialsImpl(get(map, "user"), get(map, "password")),
-						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null), get(map, "file"),
-						toCharArray(get(map, "keyStorePassword")), get(map, "url")));
+		if (containsKey(map, "config")) {
+			//
+			perform(parse(newDocumentBuilder(DocumentBuilderFactory.newInstance()),
+					testAndApply(Objects::nonNull, get(map, "config"), File::new, null)),
+					newXPath(XPathFactory.newInstance()));
+			//
+		} else {
+			//
+			info(LOG,
+					perform(testAndApply(Objects::nonNull, get(map, "host"),
+							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
+							new BasicCredentialsImpl(get(map, "user"), get(map, "password")),
+							testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
+							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url")));
+			//
+		} // if
+			//
+	}
+
+	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance)
+			throws ParserConfigurationException {
 		//
+		if (instance == null) {
+			//
+			return null;
+			//
+		} // if
+			//
+		final Field field = testAndApply(x -> size(x) == 1,
+				collect(filter(
+						stream(testAndApply(Objects::nonNull, getClass(instance), FieldUtils::getAllFieldsList, null)),
+						f -> Objects.equals(getName(f), "fSecurityManager")), Collectors.toList()),
+				x -> get(x, 0), null);
+		//
+		return field == null || Narcissus.getField(instance, field) != null ? instance.newDocumentBuilder() : null;
+		//
+	}
+
+	private static Document parse(final DocumentBuilder instance, final File file) throws SAXException, IOException {
+		//
+		if (instance == null) {
+			//
+			return null;
+			//
+		} // if
+			//
+		final Field field = testAndApply(x -> size(x) == 1,
+				collect(filter(
+						stream(testAndApply(Objects::nonNull, getClass(instance), FieldUtils::getAllFieldsList, null)),
+						f -> Objects.equals(getName(f), "domParser")), Collectors.toList()),
+				x -> get(x, 0), null);
+		//
+		return (field == null || Narcissus.getField(instance, field) != null) && file != null && file.getPath() != null
+				&& exists(file) && file.isFile() ? instance.parse(file) : null;
+		//
+	}
+
+	private static XPath newXPath(final XPathFactory instance) {
+		//
+		if (instance == null) {
+			//
+			return null;
+			//
+		} // if
+			//
+		final Field field = testAndApply(x -> size(x) == 1,
+				collect(filter(
+						stream(testAndApply(Objects::nonNull, getClass(instance), FieldUtils::getAllFieldsList, null)),
+						f -> Objects.equals(getName(f), "_featureManager")), Collectors.toList()),
+				x -> get(x, 0), null);
+		//
+		return field == null || Narcissus.getField(instance, field) != null ? instance.newXPath() : null;
+		//
+	}
+
+	private static void perform(final Document document, final XPath xp) throws Exception {
+		//
+		final NodeList nodeList = cast(NodeList.class, evaluate(xp, "/*/host", document, XPathConstants.NODESET));
+		//
+		Node node = null;
+		//
+		Iterable<String> urls = null;
+		//
+		Map<String, String> map = null;
+		//
+		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
+			//
+			if ((urls = getStrings(cast(NodeList.class,
+					evaluate(xp, "urls/url", node = nodeList.item(i), XPathConstants.NODESET)))) == null
+					|| entrySet(map = getKeyStores(
+							cast(NodeList.class, evaluate(xp, "keyStores/keyStore", node, XPathConstants.NODESET)),
+							xp)) == null) {
+				//
+				continue;
+				//
+			} // if
+				//
+			for (final Entry<String, String> entry : entrySet(map)) {
+				//
+				for (final String url : urls) {
+					//
+					final Node n = node;
+					//
+					info(LOG, perform(
+							testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)),
+									x -> HostAndPort.fromParts(x,
+											NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
+									null),
+							new BasicCredentialsImpl(Objects.toString(evaluate(xp, "user", node)),
+									Objects.toString(evaluate(xp, "password", node))),
+							testAndApply(StringUtils::isNotBlank, Objects.toString(evaluate(xp, "keyPath", node)),
+									File::new, null),
+							getKey(entry), toCharArray(getValue(entry)), url));
+					//
+				} // for
+					//
+			} // if
+				//
+		} // if
+			//
+	}
+
+	private static Map<String, String> getKeyStores(final NodeList instance, final XPath xp)
+			throws XPathExpressionException {
+		//
+		Map<String, String> map = null;
+		//
+		Node node = null;
+		//
+		for (int i = 0; instance != null && i < instance.getLength(); i++) {
+			//
+			put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new),
+					Objects.toString(evaluate(xp, "path", node = instance.item(i))),
+					getTextContent(cast(Node.class, evaluate(xp, "password", node, XPathConstants.NODE))));
+			//
+		} // for
+			//
+		return map;
+		//
+	}
+
+	private static String getTextContent(final Node instance) {
+		return instance != null ? instance.getTextContent() : null;
+	}
+
+	private static Iterable<String> getStrings(final NodeList instance) {
+		//
+		List<String> list = null;
+		//
+		for (int i = 0; instance != null && i < instance.getLength(); i++) {
+			//
+			add(list = ObjectUtils.getIfNull(list, ArrayList::new), getTextContent(instance.item(i)));
+			//
+		} // for
+			//
+		return list;
+		//
+	}
+
+	private static <E> void add(final Collection<E> instance, final E item) {
+		if (instance != null) {
+			instance.add(item);
+		}
+	}
+
+	private static Object evaluate(final XPath instance, final String string, final Object object)
+			throws XPathExpressionException {
+		return instance != null && object != null ? instance.evaluate(string, object) : null;
+	}
+
+	private static Object evaluate(final XPath instance, final String string, final Object object, final QName qName)
+			throws XPathExpressionException {
+		return instance != null && object != null ? instance.evaluate(string, object, qName) : null;
+	}
+
+	private static boolean containsKey(final Map<?, ?> instance, final Object key) {
+		return instance != null && instance.containsKey(key);
 	}
 
 	private static <T, U, E extends Exception> void testAndAccept(final BiPredicate<T, U> predicate, final T t,
@@ -268,7 +451,8 @@ public class KeyStoreSslSshReport {
 			//
 			start(sshClient);
 			//
-			try (final ClientSession clientSession = testAndApply((a, b) -> Boolean.logicalAnd(a != null, b != null),
+			try (final ClientSession clientSession = testAndApply(
+					(a, b) -> Boolean.logicalAnd(a != null, StringUtils.isNotEmpty(b)),
 					getUsername(basicCredentialsProvider), getHost(hostAndPort), (a,
 							b) -> getSession(verify(connect(sshClient, a, b,
 									hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : 22))),
