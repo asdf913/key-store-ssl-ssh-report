@@ -858,7 +858,7 @@ public class KeyStoreSslSshReportTest {
 			//
 		} // if
 			//
-		Assert.assertNotNull(
+		Assert.assertNull(
 				invoke(METHOD_TEST_AND_ACCEPT, null, Reflection.newProxy(BiPredicate.class, ih), null, null, null));
 		//
 	}
