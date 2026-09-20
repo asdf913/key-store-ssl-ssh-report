@@ -407,13 +407,16 @@ public class KeyStoreSslSshReport {
 
 		private UsernameHolder usernameHolder;
 
-		private String keyStoreFile, url;
-
 		@Target(ElementType.FIELD)
 		@Retention(RetentionPolicy.RUNTIME)
 		private @interface Note {
 			String value();
 		}
+
+		@Note("Key Store File")
+		private String keyStoreFile;
+
+		private String url;
 
 		@Note("Key Store Date")
 		private Entry<String, Date> keyStoreDate;
