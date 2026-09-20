@@ -228,7 +228,8 @@ public class KeyStoreSslSshReport {
 											NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
 									null),
 							new BasicCredentialsImpl(Objects.toString(evaluate(xp, "user", node)),
-									Objects.toString(evaluate(xp, PASSWORD, node))),
+									getTextContent(
+											cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))),
 							testAndApply(StringUtils::isNotBlank, Objects.toString(evaluate(xp, "keyPath", node)),
 									File::new, null),
 							getKey(entry), toCharArray(getValue(entry)), url));
