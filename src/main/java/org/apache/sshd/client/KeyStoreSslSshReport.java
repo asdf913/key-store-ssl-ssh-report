@@ -10,7 +10,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
@@ -100,6 +102,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.google.common.net.HostAndPort;
+import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
 
@@ -115,6 +118,38 @@ public class KeyStoreSslSshReport {
 
 	private static final Logger LOG = LoggerFactory.getLogger(KeyStoreSslSshReport.class);
 
+	private static class IH implements InvocationHandler {
+
+		private Map<Object, Object> map = null;
+
+		@Override
+		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+			//
+			final String name = getName(method);
+			//
+			if (proxy instanceof ObjectMap) {
+				//
+				if (Objects.equals(name, "getObject") && args != null && args.length > 0) {
+					//
+					return get(map, ArrayUtils.get(args, 0));
+					//
+				} else if (Objects.equals(name, "setObject") && args != null && args.length > 1) {
+					//
+					put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), ArrayUtils.get(args, 0),
+							ArrayUtils.get(args, 1));
+					//
+					return null;
+					//
+				} // if
+					//
+			} // if
+				//
+			throw new Throwable(name);
+			//
+		}
+
+	}
+
 	public static void main(final String[] args) throws Exception {
 		//
 		final Map<String, String> map = toMap(args);
@@ -127,12 +162,26 @@ public class KeyStoreSslSshReport {
 			//
 		} else {
 			//
-			info(LOG,
-					perform(testAndApply(Objects::nonNull, get(map, "host"),
-							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null), null,
-							new BasicCredentialsImpl(get(map, "user"), get(map, PASSWORD)),
-							testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
-							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url"), null));
+			final IH ih = new IH();
+			//
+			final ObjectMap objectMap = Reflection.newProxy(ObjectMap.class, ih);
+			//
+			if (objectMap != null) {
+				//
+				objectMap.setObject(HostAndPort.class, testAndApply(Objects::nonNull, get(map, "host"),
+						x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null));
+				//
+				objectMap.setObject(BasicCredentialsProvider.class,
+						new BasicCredentialsImpl(get(map, "user"), get(map, PASSWORD)));
+				//
+				objectMap.setObject(File.class,
+						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null));
+				//
+				objectMap.setObject(char[].class, toCharArray(get(map, "keyStorePassword")));
+				//
+			} // if
+				//
+			info(LOG, perform(Reflection.newProxy(ObjectMap.class, ih), null, get(map, "file"), get(map, "url"), null));
 			//
 		} // if
 			//
@@ -208,6 +257,10 @@ public class KeyStoreSslSshReport {
 		//
 		Map<HostAndPort, byte[]> byteArrayMap = null;
 		//
+		IH ih = null;
+		//
+		ObjectMap objectMap = null;
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -226,19 +279,29 @@ public class KeyStoreSslSshReport {
 					//
 					final Node n = node;
 					//
-					info(LOG, perform(
-							testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)),
-									x -> HostAndPort.fromParts(x,
-											NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
-									null),
-							byteArrayMap = ObjectUtils.getIfNull(byteArrayMap, LinkedHashMap::new),
-							new BasicCredentialsImpl(Objects.toString(evaluate(xp, "user", node)),
-									getTextContent(
-											cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))),
-							testAndApply(StringUtils::isNotBlank, Objects.toString(evaluate(xp, "keyPath", node)),
-									File::new, null),
-							getKey(entry), toCharArray(getValue(entry)), url,
-							entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)));
+					if ((objectMap = Reflection.newProxy(ObjectMap.class, ih = new IH())) != null) {
+						//
+						objectMap.setObject(HostAndPort.class,
+								testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)),
+										x -> HostAndPort.fromParts(x,
+												NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
+										null));
+						//
+						objectMap.setObject(BasicCredentialsProvider.class, new BasicCredentialsImpl(
+								Objects.toString(evaluate(xp, "user", node)),
+								getTextContent(cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))));
+						//
+						objectMap.setObject(File.class, testAndApply(StringUtils::isNotBlank,
+								Objects.toString(evaluate(xp, "keyPath", node)), File::new, null));
+						//
+						objectMap.setObject(char[].class, toCharArray(getValue(entry)));
+						//
+					} // if
+						//
+					info(LOG,
+							perform(Reflection.newProxy(ObjectMap.class, ih),
+									byteArrayMap = ObjectUtils.getIfNull(byteArrayMap, LinkedHashMap::new),
+									getKey(entry), url, entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)));
 					//
 				} // for
 					//
@@ -448,27 +511,41 @@ public class KeyStoreSslSshReport {
 		return instance != null ? instance.longValue() : defaultValue;
 	}
 
-	private static Result perform(final HostAndPort hostAndPort, final Map<HostAndPort, byte[]> byteArrayMap,
-			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
-			final char[] keyStorePassword, final String url, final Map<String, Entry<String, Date>> entries)
+	private static interface ObjectMap {
+
+		<T> T getObject(final Class<?> clz);
+
+		<T> void setObject(final Class<T> clz, final T value);
+
+	}
+
+	private static Result perform(final ObjectMap objectMap, final Map<HostAndPort, byte[]> byteArrayMap,
+			final String keyStoreFile, final String url, final Map<String, Entry<String, Date>> entries)
 			throws Exception {
 		//
-		Map<String, X509Certificate> map = null;
+		final HostAndPort hostAndPort = objectMap != null ? objectMap.getObject(HostAndPort.class) : null;
+		//
+		final BasicCredentialsProvider basicCredentialsProvider = objectMap != null
+				? objectMap.getObject(BasicCredentialsProvider.class)
+				: null;
 		//
 		byte[] bs = get(byteArrayMap, hostAndPort);
 		//
 		if (bs == null) {
 			//
-			put(byteArrayMap, hostAndPort,
-					bs = readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile));
+			put(byteArrayMap, hostAndPort, bs = readByteArray(hostAndPort, basicCredentialsProvider,
+					objectMap != null ? objectMap.getObject(File.class) : null, keyStoreFile));
 			//
 		} // if
 			//
+		Map<String, X509Certificate> map = null;
+		//
 		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
 			//
 			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 			//
-			testAndRun(is != null, () -> load(keyStore, is, keyStorePassword));
+			testAndRun(is != null,
+					() -> load(keyStore, is, objectMap != null ? objectMap.getObject(char[].class) : null));
 			//
 			String alias, lcs = null;
 			//

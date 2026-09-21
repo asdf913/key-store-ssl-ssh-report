@@ -95,7 +95,7 @@ public class KeyStoreSslSshReportTest {
 			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_FILTER, METHOD_COLLECT, METHOD_TO_PATH, METHOD_IS_FILE,
 			METHOD_TEST_AND_ACCEPT, METHOD_PERFORM, METHOD_CAST, METHOD_NEW_XPATH, METHOD_EVALUATE = null;
 
-	private static Class<?> CLASS_RESULT = null;
+	private static Class<?> CLASS_RESULT, CLASS_OBJECT_MAP = null;
 
 	@BeforeClass
 	static void beforeClass() throws Throwable {
@@ -155,13 +155,20 @@ public class KeyStoreSslSshReportTest {
 		(METHOD_EVALUATE = clz.getDeclaredMethod("evaluate", XPath.class, String.class, Object.class))
 				.setAccessible(true);
 		//
+		final Class<?>[] declaredClasses = clz != null ? clz.getDeclaredClasses() : null;
+		//
 		(METHOD_INFO2 = clz.getDeclaredMethod("info", Logger.class,
 				CLASS_RESULT = testAndApply(x -> x != null && x.size() == 1,
-						collect(filter(Arrays.stream(clz.getDeclaredClasses()),
+						collect(filter(declaredClasses != null ? Arrays.stream(declaredClasses) : null,
 								f -> Objects.equals(f != null ? f.getSimpleName() : null, "Result")),
 								Collectors.toList()),
 						x -> x != null ? x.get(0) : null, null)))
 				.setAccessible(true);
+		//
+		CLASS_OBJECT_MAP = testAndApply(x -> x != null && x.size() == 1,
+				collect(filter(declaredClasses != null ? Arrays.stream(declaredClasses) : null,
+						f -> Objects.equals(f != null ? f.getSimpleName() : null, "ObjectMap")), Collectors.toList()),
+				x -> x != null ? x.get(0) : null, null);
 		//
 	}
 
@@ -348,6 +355,11 @@ public class KeyStoreSslSshReportTest {
 				//
 				return null;
 				//
+			} else if (CLASS_OBJECT_MAP != null && CLASS_OBJECT_MAP.isInstance(proxy)
+					&& Objects.equals(name, "getObject")) {
+				//
+				return null;
+				//
 			} // if
 				//
 			throw new Throwable(name);
@@ -510,12 +522,13 @@ public class KeyStoreSslSshReportTest {
 			if (contains(Arrays.asList(Boolean.TYPE, Integer.TYPE, Long.TYPE), m.getReturnType())
 					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "getEntry"),
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "perform"), Arrays.equals(parameterTypes,
-							new Class<?>[] { KeyStore.class, String.class })
-							|| Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class, Map.class })
-							|| Arrays.equals(parameterTypes,
-									new Class<?>[] { HostAndPort.class, Map.class, BasicCredentialsProvider.class,
-											File.class, String.class, char[].class, String.class, Map.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
+							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { String.class, Map.class, Map.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { CLASS_OBJECT_MAP, Map.class, String.class, String.class,
+													Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "readByteArray"),
@@ -703,12 +716,13 @@ public class KeyStoreSslSshReportTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "substract"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Date.class, Date.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "perform"), Arrays.equals(parameterTypes,
-							new Class<?>[] { KeyStore.class, String.class })
-							|| Arrays.equals(parameterTypes, new Class<?>[] { String.class, Map.class, Map.class })
-							|| Arrays.equals(parameterTypes,
-									new Class<?>[] { HostAndPort.class, Map.class, BasicCredentialsProvider.class,
-											File.class, String.class, char[].class, String.class, Map.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "perform"),
+							Arrays.equals(parameterTypes, new Class<?>[] { KeyStore.class, String.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { String.class, Map.class, Map.class })
+									|| Arrays.equals(parameterTypes,
+											new Class<?>[] { CLASS_OBJECT_MAP, Map.class, String.class, String.class,
+													Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "iif"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Boolean.TYPE, Object.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
@@ -995,6 +1009,39 @@ public class KeyStoreSslSshReportTest {
 		//
 		Assert.assertNull(
 				invoke(METHOD_EVALUATE, null, invoke(METHOD_NEW_XPATH, null, XPathFactory.newInstance()), null, null));
+		//
+	}
+
+	@Test
+	void testIH() throws Throwable {
+		//
+		final InvocationHandler invocationHandler = cast(InvocationHandler.class,
+				Narcissus.allocateInstance(Class.forName("org.apache.sshd.client.KeyStoreSslSshReport$IH")));
+		//
+		if (invocationHandler == null) {
+			//
+			return;
+			//
+		} // if
+			//
+		Assert.assertThrows(() -> invocationHandler.invoke(null, null, null));
+		//
+		final Object objectMap = Reflection.newProxy(CLASS_OBJECT_MAP, invocationHandler);
+		//
+		final Method getMethod = CLASS_OBJECT_MAP != null ? CLASS_OBJECT_MAP.getDeclaredMethod("getObject", Class.class)
+				: null;
+		//
+		Assert.assertThrows(() -> invocationHandler.invoke(objectMap, getMethod, null));
+		//
+		Assert.assertThrows(() -> invocationHandler.invoke(objectMap, getMethod, new Object[] {}));
+		//
+		final Method setMethod = CLASS_OBJECT_MAP != null
+				? CLASS_OBJECT_MAP.getDeclaredMethod("setObject", Class.class, Object.class)
+				: null;
+		//
+		Assert.assertThrows(() -> invocationHandler.invoke(objectMap, setMethod, null));
+		//
+		Assert.assertThrows(() -> invocationHandler.invoke(objectMap, setMethod, new Object[] {}));
 		//
 	}
 
