@@ -450,48 +450,11 @@ public class KeyStoreSslSshReport {
 			final char[] keyStorePassword, final String url, final Map<String, Entry<String, Date>> entries)
 			throws Exception {
 		//
-		byte[] bs = null;
-		//
-		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
-			//
-			setServerKeyVerifier(sshClient, AcceptAllServerKeyVerifier.INSTANCE);
-			//
-			start(sshClient);
-			//
-			try (final ClientSession clientSession = testAndApply(
-					(a, b) -> Boolean.logicalAnd(a != null, StringUtils.isNotEmpty(b)),
-					getUsername(basicCredentialsProvider), getHost(hostAndPort), (a,
-							b) -> getSession(verify(connect(sshClient, a, b,
-									hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : 22))),
-					null)) {
-				//
-				testAndAccept(Objects::nonNull,
-						basicCredentialsProvider != null ? basicCredentialsProvider.getPassword() : null,
-						x -> addPasswordIdentity(clientSession, x));
-				//
-				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
-				//
-				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
-						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
-						: null;
-						final InputStream is = testAndApply(x -> x != null && StringUtils.isNotBlank(keyStoreFile),
-								getPath(sftpFileSystem, keyStoreFile), Files::newInputStream, null);
-						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-					//
-					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
-					//
-					bs = baos.toByteArray();
-					//
-				} // try
-					//
-			} // try
-				//
-		} // try
-			//
 		Map<String, X509Certificate> map = null;
 		//
-		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
+		try (final InputStream is = testAndApply(Objects::nonNull,
+				readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile, keyStorePassword),
+				ByteArrayInputStream::new, null)) {
 			//
 			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 			//
@@ -544,6 +507,53 @@ public class KeyStoreSslSshReport {
 		} // if
 			//
 		return result;
+		//
+	}
+
+	private static byte[] readByteArray(final HostAndPort hostAndPort,
+			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
+			final char[] keyStorePassword) throws Exception {
+		//
+		byte[] bs = null;
+		//
+		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
+			//
+			setServerKeyVerifier(sshClient, AcceptAllServerKeyVerifier.INSTANCE);
+			//
+			start(sshClient);
+			//
+			try (final ClientSession clientSession = testAndApply(
+					(a, b) -> Boolean.logicalAnd(a != null, StringUtils.isNotEmpty(b)),
+					getUsername(basicCredentialsProvider), getHost(hostAndPort), (a,
+							b) -> getSession(verify(connect(sshClient, a, b,
+									hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : 22))),
+					null)) {
+				//
+				testAndAccept(Objects::nonNull,
+						basicCredentialsProvider != null ? basicCredentialsProvider.getPassword() : null,
+						x -> addPasswordIdentity(clientSession, x));
+				//
+				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
+						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
+				//
+				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
+						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
+						: null;
+						final InputStream is = testAndApply(x -> x != null && StringUtils.isNotBlank(keyStoreFile),
+								getPath(sftpFileSystem, keyStoreFile), Files::newInputStream, null);
+						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+					//
+					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
+					//
+					bs = baos.toByteArray();
+					//
+				} // try
+					//
+			} // try
+				//
+		} // try
+			//
+		return bs;
 		//
 	}
 

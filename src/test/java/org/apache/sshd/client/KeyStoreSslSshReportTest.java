@@ -518,7 +518,10 @@ public class KeyStoreSslSshReportTest {
 											new Class<?>[] { HostAndPort.class, BasicCredentialsProvider.class,
 													File.class, String.class, char[].class, String.class, Map.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
-							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "readByteArray"),
+							Arrays.equals(parameterTypes, new Class<?>[] { HostAndPort.class,
+									BasicCredentialsProvider.class, File.class, String.class, char[].class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -711,7 +714,10 @@ public class KeyStoreSslSshReportTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "iif"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Boolean.TYPE, Object.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "validate"),
-							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "readByteArray"),
+							Arrays.equals(parameterTypes, new Class<?>[] { HostAndPort.class,
+									BasicCredentialsProvider.class, File.class, String.class, char[].class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
