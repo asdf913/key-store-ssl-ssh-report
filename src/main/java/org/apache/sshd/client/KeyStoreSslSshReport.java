@@ -516,9 +516,13 @@ public class KeyStoreSslSshReport {
 
 	private static interface ObjectMap {
 
-		<T> T getObject(final Class<?> clz);
+		<T> T getObject(final Class<T> clz);
 
 		<T> void setObject(final Class<T> clz, final T value);
+
+		static <T> T getObject(final ObjectMap instance, final Class<T> clz) {
+			return instance != null ? instance.getObject(clz) : null;
+		}
 
 	}
 
@@ -532,11 +536,10 @@ public class KeyStoreSslSshReport {
 			//
 		} // if
 			//
-		final HostAndPort hostAndPort = objectMap != null ? objectMap.getObject(HostAndPort.class) : null;
+		final HostAndPort hostAndPort = ObjectMap.getObject(objectMap, HostAndPort.class);
 		//
-		final BasicCredentialsProvider basicCredentialsProvider = objectMap != null
-				? objectMap.getObject(BasicCredentialsProvider.class)
-				: null;
+		final BasicCredentialsProvider basicCredentialsProvider = ObjectMap.getObject(objectMap,
+				BasicCredentialsProvider.class);
 		//
 		byte[] bs = null;
 		//
@@ -550,8 +553,7 @@ public class KeyStoreSslSshReport {
 			//
 			if ((bs = get(table, hostAndPort, getKey(entry))) == null
 					&& (stringByteArrayMap = readByteArrays(hostAndPort, basicCredentialsProvider,
-							objectMap != null ? objectMap.getObject(File.class) : null,
-							keySet(keyStoreFiles))) != null) {
+							ObjectMap.getObject(objectMap, File.class), keySet(keyStoreFiles))) != null) {
 				//
 				for (final Entry<String, byte[]> stringByteArray : entrySet(stringByteArrayMap)) {
 					//
