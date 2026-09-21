@@ -546,14 +546,6 @@ public class KeyStoreSslSshReport {
 		//
 		Result result = null;
 		//
-		String alias, lcs = null;
-		//
-		Certificate certificate = null;
-		//
-		X509Certificate x509Certificate = null;
-		//
-		Date notAfter = null;
-		//
 		for (final Entry<String, String> entry : entrySet(keyStoreFiles)) {
 			//
 			if ((bs = get(table, hostAndPort, getKey(entry))) == null
@@ -576,36 +568,8 @@ public class KeyStoreSslSshReport {
 					//
 			} // if
 				//
-			Map<String, X509Certificate> map = null;
+			final Map<String, X509Certificate> map = getX509CertificateMap(bs, toCharArray(getValue(entry)), url);
 			//
-			try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
-				//
-				final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-				//
-				testAndRun(is != null, () -> load(keyStore, is, toCharArray(getValue(entry))));
-				//
-				final Enumeration<String> aliases = aliases(keyStore);
-				//
-				while (hasMoreElements(aliases)) {
-					//
-					if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
-							&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
-							&& (x509Certificate = (X509Certificate) certificate) != null
-							&& isValid(DomainValidator.getInstance(),
-									lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)),
-											url))
-							&& ((notAfter = getNotAfter(
-									get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
-									|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
-						//
-						put(map, lcs, x509Certificate);
-						//
-					} // if
-						//
-				} // while
-					//
-			} // try
-				//
 			final String longest = orElse(max(stream(keySet(map)), Comparator.comparingInt(StringUtils::length)), "");
 			//
 			if ((result = perform(url, collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
@@ -624,6 +588,50 @@ public class KeyStoreSslSshReport {
 		} // for
 			//
 		return results;
+		//
+	}
+
+	private static Map<String, X509Certificate> getX509CertificateMap(final byte[] bs, final char[] password,
+			final String url) throws Exception {
+		//
+		String alias, lcs = null;
+		//
+		Certificate certificate = null;
+		//
+		X509Certificate x509Certificate = null;
+		//
+		Date notAfter = null;
+		//
+		Map<String, X509Certificate> map = null;
+		//
+		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
+			//
+			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+			//
+			testAndRun(is != null, () -> load(keyStore, is, password));
+			//
+			final Enumeration<String> aliases = aliases(keyStore);
+			//
+			while (hasMoreElements(aliases)) {
+				//
+				if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
+						&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
+						&& (x509Certificate = (X509Certificate) certificate) != null
+						&& isValid(DomainValidator.getInstance(),
+								lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)), url))
+						&& ((notAfter = getNotAfter(
+								get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
+								|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
+					//
+					put(map, lcs, x509Certificate);
+					//
+				} // if
+					//
+			} // while
+				//
+		} // try
+			//
+		return map;
 		//
 	}
 
