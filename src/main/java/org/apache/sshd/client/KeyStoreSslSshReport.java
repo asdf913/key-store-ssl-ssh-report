@@ -460,7 +460,7 @@ public class KeyStoreSslSshReport {
 		if (bs == null) {
 			//
 			put(byteArrayMap, hostAndPort,
-					bs = readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile, keyStorePassword));
+					bs = readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile));
 			//
 		} // if
 			//
@@ -521,8 +521,8 @@ public class KeyStoreSslSshReport {
 	}
 
 	private static byte[] readByteArray(final HostAndPort hostAndPort,
-			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
-			final char[] keyStorePassword) throws Exception {
+			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile)
+			throws Exception {
 		//
 		byte[] bs = null;
 		//

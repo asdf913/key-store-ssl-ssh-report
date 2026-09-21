@@ -520,7 +520,7 @@ public class KeyStoreSslSshReportTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "readByteArray"),
 							Arrays.equals(parameterTypes, new Class<?>[] { HostAndPort.class,
-									BasicCredentialsProvider.class, File.class, String.class, char[].class }))) {
+									BasicCredentialsProvider.class, File.class, String.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -715,7 +715,7 @@ public class KeyStoreSslSshReportTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "readByteArray"),
 							Arrays.equals(parameterTypes, new Class<?>[] { HostAndPort.class,
-									BasicCredentialsProvider.class, File.class, String.class, char[].class }))) {
+									BasicCredentialsProvider.class, File.class, String.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
