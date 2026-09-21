@@ -366,11 +366,10 @@ public class KeyStoreSslSshReportTest {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Table && Objects.equals(name, "put")) {
+			} else if (Boolean.logicalAnd(proxy instanceof Table, contains(Arrays.asList("put", "get"), name))) {
 				//
 				return null;
 				//
-
 			} else if (CLASS_OBJECT_MAP != null && CLASS_OBJECT_MAP.isInstance(proxy)
 					&& Objects.equals(name, "getObject")) {
 				//

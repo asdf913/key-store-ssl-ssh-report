@@ -556,7 +556,7 @@ public class KeyStoreSslSshReport {
 		//
 		for (final Entry<String, String> entry : entrySet(keyStoreFiles)) {
 			//
-			if ((bs = table != null ? table.get(hostAndPort, getKey(entry)) : null) == null
+			if ((bs = get(table, hostAndPort, getKey(entry))) == null
 					&& (stringByteArrayMap = readByteArrays(hostAndPort, basicCredentialsProvider,
 							objectMap != null ? objectMap.getObject(File.class) : null,
 							keyStoreFiles != null ? keyStoreFiles.keySet() : null)) != null) {
@@ -567,8 +567,7 @@ public class KeyStoreSslSshReport {
 					//
 				} // for
 					//
-				if ((bs = table != null ? table.get(hostAndPort, getKey(entry)) : null) == null
-						&& stringByteArrayMap.size() == 1) {
+				if ((bs = get(table, hostAndPort, getKey(entry))) == null && stringByteArrayMap.size() == 1) {
 					//
 					bs = new ArrayList<>(stringByteArrayMap.values()).get(0);
 					//
@@ -625,6 +624,10 @@ public class KeyStoreSslSshReport {
 			//
 		return results;
 		//
+	}
+
+	private static <R, C, V> V get(final Table<R, C, V> instance, final R rowKey, final C columnKey) {
+		return instance != null ? instance.get(rowKey, columnKey) : null;
 	}
 
 	private static <R, C, V> void put(final Table<R, C, V> instance, final R rowKey, final C columnKey, final V value) {
