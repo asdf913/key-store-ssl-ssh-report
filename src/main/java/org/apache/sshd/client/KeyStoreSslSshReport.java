@@ -567,7 +567,8 @@ public class KeyStoreSslSshReport {
 					//
 				} // for
 					//
-				if ((bs = get(table, hostAndPort, getKey(entry))) == null && stringByteArrayMap.size() == 1) {
+				if (Boolean.logicalAnd((bs = get(table, hostAndPort, getKey(entry))) == null,
+						stringByteArrayMap.size() == 1)) {
 					//
 					bs = new ArrayList<>(stringByteArrayMap.values()).get(0);
 					//
