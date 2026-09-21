@@ -129,7 +129,7 @@ public class KeyStoreSslSshReport {
 			//
 			info(LOG,
 					perform(testAndApply(Objects::nonNull, get(map, "host"),
-							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null),
+							x -> HostAndPort.fromParts(x, NumberUtils.toInt(get(map, "port"), 22)), null), null,
 							new BasicCredentialsImpl(get(map, "user"), get(map, PASSWORD)),
 							testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null),
 							get(map, "file"), toCharArray(get(map, "keyStorePassword")), get(map, "url"), null));
@@ -206,6 +206,8 @@ public class KeyStoreSslSshReport {
 		//
 		Map<String, Entry<String, Date>> entries = null;
 		//
+		Map<HostAndPort, byte[]> byteArrayMap = null;
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -229,6 +231,7 @@ public class KeyStoreSslSshReport {
 									x -> HostAndPort.fromParts(x,
 											NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
 									null),
+							byteArrayMap = ObjectUtils.getIfNull(byteArrayMap, LinkedHashMap::new),
 							new BasicCredentialsImpl(Objects.toString(evaluate(xp, "user", node)),
 									getTextContent(
 											cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))),
@@ -445,16 +448,23 @@ public class KeyStoreSslSshReport {
 		return instance != null ? instance.longValue() : defaultValue;
 	}
 
-	private static Result perform(final HostAndPort hostAndPort,
+	private static Result perform(final HostAndPort hostAndPort, final Map<HostAndPort, byte[]> byteArrayMap,
 			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile,
 			final char[] keyStorePassword, final String url, final Map<String, Entry<String, Date>> entries)
 			throws Exception {
 		//
 		Map<String, X509Certificate> map = null;
 		//
-		try (final InputStream is = testAndApply(Objects::nonNull,
-				readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile, keyStorePassword),
-				ByteArrayInputStream::new, null)) {
+		byte[] bs = get(byteArrayMap, hostAndPort);
+		//
+		if (bs == null) {
+			//
+			put(byteArrayMap, hostAndPort,
+					bs = readByteArray(hostAndPort, basicCredentialsProvider, key, keyStoreFile, keyStorePassword));
+			//
+		} // if
+			//
+		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
 			//
 			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 			//
