@@ -559,7 +559,7 @@ public class KeyStoreSslSshReport {
 			if ((bs = get(table, hostAndPort, getKey(entry))) == null
 					&& (stringByteArrayMap = readByteArrays(hostAndPort, basicCredentialsProvider,
 							objectMap != null ? objectMap.getObject(File.class) : null,
-							keyStoreFiles != null ? keyStoreFiles.keySet() : null)) != null) {
+							keySet(keyStoreFiles))) != null) {
 				//
 				for (final Entry<String, byte[]> stringByteArray : entrySet(stringByteArrayMap)) {
 					//
