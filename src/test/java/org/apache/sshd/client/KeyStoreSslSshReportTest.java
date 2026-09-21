@@ -82,6 +82,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.google.common.collect.Table;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
 
@@ -208,7 +209,7 @@ public class KeyStoreSslSshReportTest {
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean test, containsKey, hasMoreElements, add, anyMatch, isSuccess;
+		private Boolean test, containsKey, isEmpty, hasMoreElements, add, anyMatch, isSuccess;
 
 		private Integer size, length;
 
@@ -218,6 +219,12 @@ public class KeyStoreSslSshReportTest {
 			final String name = getName(method);
 			//
 			if (Objects.equals(method != null ? method.getReturnType() : null, Void.TYPE)) {
+				//
+				return null;
+				//
+			} // if
+				//
+			if (Boolean.logicalAnd(proxy instanceof Iterable, Objects.equals(name, "iterator"))) {
 				//
 				return null;
 				//
@@ -246,6 +253,10 @@ public class KeyStoreSslSshReportTest {
 				if (Objects.equals(name, "containsKey")) {
 					//
 					return containsKey;
+					//
+				} else if (Objects.equals(name, "isEmpty")) {
+					//
+					return isEmpty;
 					//
 				} else if (contains(Arrays.asList("get", "put", "entrySet", "keySet"), name)) {
 					//
@@ -355,6 +366,11 @@ public class KeyStoreSslSshReportTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof Table && Objects.equals(name, "put")) {
+				//
+				return null;
+				//
+
 			} else if (CLASS_OBJECT_MAP != null && CLASS_OBJECT_MAP.isInstance(proxy)
 					&& Objects.equals(name, "getObject")) {
 				//

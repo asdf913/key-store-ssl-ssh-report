@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
@@ -44,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -101,6 +103,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
 
@@ -177,14 +181,20 @@ public class KeyStoreSslSshReport {
 				objectMap.setObject(File.class,
 						testAndApply(StringUtils::isNotBlank, get(map, "keyPath"), File::new, null));
 				//
-				objectMap.setObject(char[].class, toCharArray(get(map, "keyStorePassword")));
-				//
 			} // if
 				//
-			info(LOG, perform(Reflection.newProxy(ObjectMap.class, ih), null, get(map, "file"), get(map, "url"), null));
+			forEach(perform(Reflection.newProxy(ObjectMap.class, ih),
+					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, get(map, "url"),
+					null), x -> info(LOG, x));
 			//
 		} // if
 			//
+	}
+
+	private static <T> void forEach(final Iterable<T> instance, final Consumer<T> consumer) {
+		if (instance != null) {
+			instance.forEach(consumer);
+		}
 	}
 
 	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance)
@@ -255,7 +265,7 @@ public class KeyStoreSslSshReport {
 		//
 		Map<String, Entry<String, Date>> entries = null;
 		//
-		Map<HostAndPort, byte[]> byteArrayMap = null;
+		Table<HostAndPort, String, byte[]> table = null;
 		//
 		IH ih = null;
 		//
@@ -273,41 +283,33 @@ public class KeyStoreSslSshReport {
 				//
 			} // if
 				//
-			for (final Entry<String, String> entry : entrySet(map)) {
+			for (final String url : urls) {
 				//
-				for (final String url : urls) {
-					//
-					final Node n = node;
-					//
-					if ((objectMap = Reflection.newProxy(ObjectMap.class, ih = new IH())) != null) {
-						//
-						objectMap.setObject(HostAndPort.class,
-								testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)),
-										x -> HostAndPort.fromParts(x,
-												NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
-										null));
-						//
-						objectMap.setObject(BasicCredentialsProvider.class, new BasicCredentialsImpl(
-								Objects.toString(evaluate(xp, "user", node)),
-								getTextContent(cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))));
-						//
-						objectMap.setObject(File.class, testAndApply(StringUtils::isNotBlank,
-								Objects.toString(evaluate(xp, "keyPath", node)), File::new, null));
-						//
-						objectMap.setObject(char[].class, toCharArray(getValue(entry)));
-						//
-					} // if
-						//
-					info(LOG,
-							perform(Reflection.newProxy(ObjectMap.class, ih),
-									byteArrayMap = ObjectUtils.getIfNull(byteArrayMap, LinkedHashMap::new),
-									getKey(entry), url, entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)));
-					//
-				} // for
-					//
-			} // if
+				final Node n = node;
 				//
-		} // if
+				if ((objectMap = Reflection.newProxy(ObjectMap.class, ih = new IH())) != null) {
+					//
+					objectMap.setObject(HostAndPort.class,
+							testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)), x -> HostAndPort
+									.fromParts(x, NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
+									null));
+					//
+					objectMap.setObject(BasicCredentialsProvider.class, new BasicCredentialsImpl(
+							Objects.toString(evaluate(xp, "user", node)),
+							getTextContent(cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))));
+					//
+					objectMap.setObject(File.class, testAndApply(StringUtils::isNotBlank,
+							Objects.toString(evaluate(xp, "keyPath", node)), File::new, null));
+					//
+				} // if
+					//
+				perform(Reflection.newProxy(ObjectMap.class, ih), map,
+						table = ObjectUtils.getIfNull(table, HashBasedTable::create), url,
+						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new));
+				//
+			} // for
+				//
+		} // for
 			//
 	}
 
@@ -519,89 +521,122 @@ public class KeyStoreSslSshReport {
 
 	}
 
-	private static Result perform(final ObjectMap objectMap, final Map<HostAndPort, byte[]> byteArrayMap,
-			final String keyStoreFile, final String url, final Map<String, Entry<String, Date>> entries)
-			throws Exception {
+	private static Iterable<Result> perform(final ObjectMap objectMap, final Map<String, String> keyStoreFiles,
+			final Table<HostAndPort, String, byte[]> table, final String url,
+			final Map<String, Entry<String, Date>> entries) throws Exception {
 		//
+		if (keyStoreFiles == null || keyStoreFiles.isEmpty()) {
+			//
+			return null;
+			//
+		} // if
+			//
 		final HostAndPort hostAndPort = objectMap != null ? objectMap.getObject(HostAndPort.class) : null;
 		//
 		final BasicCredentialsProvider basicCredentialsProvider = objectMap != null
 				? objectMap.getObject(BasicCredentialsProvider.class)
 				: null;
 		//
-		byte[] bs = get(byteArrayMap, hostAndPort);
+		byte[] bs = null;
 		//
-		if (bs == null) {
-			//
-			put(byteArrayMap, hostAndPort, bs = readByteArray(hostAndPort, basicCredentialsProvider,
-					objectMap != null ? objectMap.getObject(File.class) : null, keyStoreFile));
-			//
-		} // if
-			//
-		Map<String, X509Certificate> map = null;
+		Map<String, byte[]> stringByteArrayMap = null;
 		//
-		try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
+		List<Result> results = null;
+		//
+		Result result = null;
+		//
+		String alias, lcs = null;
+		//
+		Certificate certificate = null;
+		//
+		X509Certificate x509Certificate = null;
+		//
+		Date notAfter = null;
+		//
+		for (final Entry<String, String> entry : entrySet(keyStoreFiles)) {
 			//
-			final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-			//
-			testAndRun(is != null,
-					() -> load(keyStore, is, objectMap != null ? objectMap.getObject(char[].class) : null));
-			//
-			String alias, lcs = null;
-			//
-			Certificate certificate = null;
-			//
-			X509Certificate x509Certificate = null;
-			//
-			Date notAfter = null;
-			//
-			final Enumeration<String> aliases = aliases(keyStore);
-			//
-			while (hasMoreElements(aliases)) {
+			if ((bs = table != null ? table.get(hostAndPort, getKey(entry)) : null) == null
+					&& (stringByteArrayMap = readByteArrays(hostAndPort, basicCredentialsProvider,
+							objectMap != null ? objectMap.getObject(File.class) : null,
+							keyStoreFiles != null ? keyStoreFiles.keySet() : null)) != null) {
 				//
-				if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
-						&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
-						&& (x509Certificate = (X509Certificate) certificate) != null
-						&& isValid(DomainValidator.getInstance(),
-								lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)), url))
-						&& ((notAfter = getNotAfter(
-								get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
-								|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
+				for (final Entry<String, byte[]> stringByteArray : entrySet(stringByteArrayMap)) {
 					//
-					put(map, lcs, x509Certificate);
+					put(table, hostAndPort, getKey(stringByteArray), getValue(stringByteArray));
+					//
+				} // for
+					//
+				if ((bs = table != null ? table.get(hostAndPort, getKey(entry)) : null) == null
+						&& stringByteArrayMap.size() == 1) {
+					//
+					bs = new ArrayList<>(stringByteArrayMap.values()).get(0);
 					//
 				} // if
 					//
-			} // while
+			} // if
 				//
-		} // try
+			Map<String, X509Certificate> map = null;
 			//
-		final String longest = orElse(max(stream(keySet(map)), Comparator.comparingInt(StringUtils::length)), "");
-		//
-		final Result result = perform(url,
-				collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
-						Collectors.toMap(x -> getKey(x), x -> getValue(x))),
-				entries);
-		//
-		if (result != null) {
+			try (final InputStream is = testAndApply(Objects::nonNull, bs, ByteArrayInputStream::new, null)) {
+				//
+				final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+				//
+				testAndRun(is != null, () -> load(keyStore, is, toCharArray(getValue(entry))));
+				//
+				final Enumeration<String> aliases = aliases(keyStore);
+				//
+				while (hasMoreElements(aliases)) {
+					//
+					if ((isCertificateEntry(keyStore, alias = nextElement(aliases)) || isKeyEntry(keyStore, alias))
+							&& (certificate = getCertificate(keyStore, alias)) instanceof X509Certificate
+							&& (x509Certificate = (X509Certificate) certificate) != null
+							&& isValid(DomainValidator.getInstance(),
+									lcs = longestCommonSubstring(getName(getSubjectX500Principal(x509Certificate)),
+											url))
+							&& ((notAfter = getNotAfter(
+									get(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), lcs))) == null
+									|| ObjectUtils.compare(getNotAfter(x509Certificate), notAfter) > 0)) {
+						//
+						put(map, lcs, x509Certificate);
+						//
+					} // if
+						//
+				} // while
+					//
+			} // try
+				//
+			final String longest = orElse(max(stream(keySet(map)), Comparator.comparingInt(StringUtils::length)), "");
 			//
-			result.hostAndPort = hostAndPort;
+			if ((result = perform(url, collect(filter(stream(entrySet(map)), x -> Objects.equals(getKey(x), longest)),
+					Collectors.toMap(x -> getKey(x), x -> getValue(x))), entries)) != null) {
+				//
+				result.hostAndPort = hostAndPort;
+				//
+				result.usernameHolder = basicCredentialsProvider;
+				//
+				result.keyStoreFile = getKey(entry);
+				//
+			} // if
+				//
+			add(results = ObjectUtils.getIfNull(results, ArrayList::new), result);
 			//
-			result.usernameHolder = basicCredentialsProvider;
+		} // for
 			//
-			result.keyStoreFile = keyStoreFile;
-			//
-		} // if
-			//
-		return result;
+		return results;
 		//
 	}
 
-	private static byte[] readByteArray(final HostAndPort hostAndPort,
-			final BasicCredentialsProvider basicCredentialsProvider, final File key, final String keyStoreFile)
-			throws Exception {
+	private static <R, C, V> void put(final Table<R, C, V> instance, final R rowKey, final C columnKey, final V value) {
+		if (instance != null) {
+			instance.put(rowKey, columnKey, value);
+		}
+	}
+
+	private static Map<String, byte[]> readByteArrays(final HostAndPort hostAndPort,
+			final BasicCredentialsProvider basicCredentialsProvider, final File key,
+			final Iterable<String> keyStoreFiles) throws Exception {
 		//
-		byte[] bs = null;
+		Map<String, byte[]> map = null;
 		//
 		try (final SshClient sshClient = SshClient.setUpDefaultClient()) {
 			//
@@ -625,22 +660,43 @@ public class KeyStoreSslSshReport {
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
-						: null;
-						final InputStream is = testAndApply(x -> x != null && StringUtils.isNotBlank(keyStoreFile),
-								getPath(sftpFileSystem, keyStoreFile), Files::newInputStream, null);
-						final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+						: null) {
 					//
-					testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos, IOUtils::copy);
-					//
-					bs = baos.toByteArray();
-					//
+					if (keyStoreFiles != null && keyStoreFiles.iterator() != null) {
+						//
+						Path path = null;
+						//
+						for (final String keyStoreFile : keyStoreFiles) {
+							//
+							try (final InputStream is = testAndApply(Objects::nonNull,
+									StringUtils.isNotBlank(keyStoreFile) ? path = getPath(sftpFileSystem, keyStoreFile)
+											: null,
+									Files::newInputStream, null);
+									final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+								//
+								if (path != null && Files.exists(path)) {
+									//
+									testAndAccept((a, b) -> Boolean.logicalAnd(a != null, b != null), is, baos,
+											IOUtils::copy);
+									//
+									put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), keyStoreFile,
+											baos.toByteArray());
+									//
+								} // if
+									//
+							} // try
+								//
+						} // for
+							//
+					} // if
+						//
 				} // try
 					//
 			} // try
 				//
 		} // try
 			//
-		return bs;
+		return map;
 		//
 	}
 
