@@ -304,9 +304,9 @@ public class KeyStoreSslSshReport {
 					//
 				} // if
 					//
-				perform(Reflection.newProxy(ObjectMap.class, ih), map,
+				forEach(perform(Reflection.newProxy(ObjectMap.class, ih), map,
 						table = ObjectUtils.getIfNull(table, HashBasedTable::create), url,
-						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new));
+						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)), x -> info(LOG, x));
 				//
 			} // for
 				//
