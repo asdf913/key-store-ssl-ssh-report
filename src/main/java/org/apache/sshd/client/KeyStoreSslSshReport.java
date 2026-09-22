@@ -697,8 +697,12 @@ public class KeyStoreSslSshReport {
 				testAndAccept(Objects::nonNull, getPassword(basicCredentialsProvider),
 						x -> addPasswordIdentity(clientSession, x));
 				//
-				testAndAccept(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
-						x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null));
+				testAndAccept(Objects::nonNull,
+						testAndApply(x -> x != null && x.size() == 1,
+								testAndApply(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
+										x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null), null),
+								x -> new ArrayList<>(x).get(0), null),
+						x -> addPublicKeyIdentity(clientSession, x));
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
@@ -740,6 +744,12 @@ public class KeyStoreSslSshReport {
 			//
 		return map;
 		//
+	}
+
+	private static void addPublicKeyIdentity(final ClientAuthenticationManager instance, final KeyPair keyPair) {
+		if (instance != null) {
+			instance.addPublicKeyIdentity(keyPair);
+		}
 	}
 
 	private static String getPassword(final PasswordHolder instance) {
