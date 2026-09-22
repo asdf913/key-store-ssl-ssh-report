@@ -1,9 +1,9 @@
 # key-store-ssl-ssh-report
 
+There are two mode for this command utility.
+
 ## Build
 <pre>mvn clean package</pre>
-
-There are two mode for this command utility.
 
 ## Properties Mode
 
