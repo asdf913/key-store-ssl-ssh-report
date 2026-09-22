@@ -43,13 +43,18 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -184,9 +189,11 @@ public class KeyStoreSslSshReport {
 				//
 			} // if
 				//
+			final String url = get(map, "url");
+			//
 			forEach(perform(Reflection.newProxy(ObjectMap.class, ih),
-					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, get(map, "url"),
-					null), x -> info(LOG, x));
+					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, get(map, url),
+					null), x -> info(LOG, x, StringUtils.length(url)));
 			//
 		} // if
 			//
@@ -272,6 +279,11 @@ public class KeyStoreSslSshReport {
 		//
 		ObjectMap objectMap = null;
 		//
+		final int maxUrlLength = orElse(max(mapToInt(testAndApply(Objects::nonNull,
+				spliterator(
+						getStrings(cast(NodeList.class, evaluate(xp, "/*/*/*/url", document, XPathConstants.NODESET)))),
+				x -> StreamSupport.stream(x, false), null), StringUtils::length)), 0);
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -306,12 +318,28 @@ public class KeyStoreSslSshReport {
 					//
 				forEach(perform(Reflection.newProxy(ObjectMap.class, ih), map,
 						table = ObjectUtils.getIfNull(table, HashBasedTable::create), url,
-						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)), x -> info(LOG, x));
+						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)), x -> info(LOG, x, maxUrlLength));
 				//
 			} // for
 				//
 		} // for
 			//
+	}
+
+	private static int orElse(final OptionalInt instance, final int defaultValue) {
+		return instance != null ? instance.orElse(defaultValue) : defaultValue;
+	}
+
+	private static OptionalInt max(final IntStream instance) {
+		return instance != null ? instance.max() : null;
+	}
+
+	private static <T> IntStream mapToInt(final Stream<T> instance, final ToIntFunction<T> mapper) {
+		return instance != null ? instance.mapToInt(mapper) : null;
+	}
+
+	private static <T> Spliterator<T> spliterator(final Iterable<T> instance) {
+		return instance != null ? instance.spliterator() : null;
 	}
 
 	private static Map<String, String> getKeyStores(final NodeList instance, final XPath xp)
@@ -726,7 +754,7 @@ public class KeyStoreSslSshReport {
 		return instance != null ? instance.getHost() : null;
 	}
 
-	private static void info(final Logger logger, final Result result) {
+	private static void info(final Logger logger, final Result result, final int maxUrlLength) {
 		//
 		DateFormat df = null;
 		//
@@ -746,13 +774,15 @@ public class KeyStoreSslSshReport {
 		//
 		Entry<String, Date> entry = result != null ? result.keyStoreDate : null;
 		//
-		info(logger, "KeyStore{}={} {}", padding, StringUtils.defaultString(getKey(entry)),
+		info(logger, "KeyStore{}={} {}", padding,
+				StringUtils.rightPad(StringUtils.defaultString(getKey(entry)), maxUrlLength),
 				StringUtils.defaultString(
 						format(df = ObjectUtils.getIfNull(df, () -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")),
 								getValue(entry))));
 		//
 		info(logger, "HTTPS   {}={} {}", padding,
-				StringUtils.defaultString(getKey(entry = result != null ? result.urlDate : null)),
+				StringUtils.rightPad(StringUtils.defaultString(getKey(entry = result != null ? result.urlDate : null)),
+						maxUrlLength),
 				StringUtils.defaultString(format(df, getValue(entry))));
 		//
 		if (longValue(difference, 0) > 0) {

@@ -37,6 +37,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -163,8 +164,8 @@ public class KeyStoreSslSshReportTest {
 						collect(filter(declaredClasses != null ? Arrays.stream(declaredClasses) : null,
 								f -> Objects.equals(f != null ? f.getSimpleName() : null, "Result")),
 								Collectors.toList()),
-						x -> x != null ? x.get(0) : null, null)))
-				.setAccessible(true);
+						x -> x != null ? x.get(0) : null, null),
+				Integer.TYPE)).setAccessible(true);
 		//
 		CLASS_OBJECT_MAP = testAndApply(x -> x != null && x.size() == 1,
 				collect(filter(declaredClasses != null ? Arrays.stream(declaredClasses) : null,
@@ -224,7 +225,8 @@ public class KeyStoreSslSshReportTest {
 				//
 			} // if
 				//
-			if (Boolean.logicalAnd(proxy instanceof Iterable, Objects.equals(name, "iterator"))) {
+			if (Boolean.logicalAnd(proxy instanceof Iterable,
+					contains(Arrays.asList("iterator", "spliterator"), name))) {
 				//
 				return null;
 				//
@@ -276,7 +278,7 @@ public class KeyStoreSslSshReportTest {
 				//
 			} else if (proxy instanceof Stream) {
 				//
-				if (contains(Arrays.asList("collect", "filter", "max"), name)) {
+				if (contains(Arrays.asList("collect", "filter", "max", "mapToInt"), name)) {
 					//
 					return null;
 					//
@@ -367,6 +369,10 @@ public class KeyStoreSslSshReportTest {
 				return null;
 				//
 			} else if (Boolean.logicalAnd(proxy instanceof Table, contains(Arrays.asList("put", "get"), name))) {
+				//
+				return null;
+				//
+			} else if (Boolean.logicalAnd(proxy instanceof IntStream, Objects.equals(name, "max"))) {
 				//
 				return null;
 				//
@@ -919,11 +925,13 @@ public class KeyStoreSslSshReportTest {
 		//
 		FieldUtils.writeDeclaredField(result, "difference", Long.valueOf(-1), true);
 		//
-		Assert.assertNull(invoke(METHOD_INFO2, null, null, result));
+		final Integer integer = Integer.valueOf(0);
+		//
+		Assert.assertNull(invoke(METHOD_INFO2, null, null, result, integer));
 		//
 		FieldUtils.writeDeclaredField(result, "difference", Long.valueOf(1), true);
 		//
-		Assert.assertNull(invoke(METHOD_INFO2, null, null, result));
+		Assert.assertNull(invoke(METHOD_INFO2, null, null, result, integer));
 		//
 		Assert.assertNull(invoke(METHOD_INFO3, null, null, null, Collections.singletonMap(null, null)));
 		//
