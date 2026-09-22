@@ -192,8 +192,8 @@ public class KeyStoreSslSshReport {
 			final String url = get(map, "url");
 			//
 			forEach(perform(Reflection.newProxy(ObjectMap.class, ih),
-					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, get(map, url),
-					null), x -> info(LOG, x, StringUtils.length(url)));
+					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, url, null),
+					x -> info(LOG, x, StringUtils.length(url)));
 			//
 		} // if
 			//
