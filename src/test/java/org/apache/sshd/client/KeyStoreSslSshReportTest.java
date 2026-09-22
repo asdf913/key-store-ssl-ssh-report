@@ -95,7 +95,8 @@ public class KeyStoreSslSshReportTest {
 			METHOD_IS_CERTIFICATE_ENTRY, METHOD_IS_VALID, METHOD_FORMAT, METHOD_TO_CHAR_ARRAY,
 			METHOD_LONGEST_COMMON_SUB_STRING, METHOD_SUBSTRACT, METHOD_INFO2, METHOD_INFO3, METHOD_NEW_DOCUMENT_BUILDER,
 			METHOD_TEST_AND_RUN, METHOD_TEST_AND_APPLY, METHOD_FILTER, METHOD_COLLECT, METHOD_TO_PATH, METHOD_IS_FILE,
-			METHOD_TEST_AND_ACCEPT, METHOD_PERFORM, METHOD_CAST, METHOD_NEW_XPATH, METHOD_EVALUATE = null;
+			METHOD_TEST_AND_ACCEPT, METHOD_PERFORM, METHOD_CAST, METHOD_NEW_XPATH, METHOD_EVALUATE,
+			METHOD_GET_PORT = null;
 
 	private static Class<?> CLASS_RESULT, CLASS_OBJECT_MAP = null;
 
@@ -156,6 +157,8 @@ public class KeyStoreSslSshReportTest {
 		//
 		(METHOD_EVALUATE = clz.getDeclaredMethod("evaluate", XPath.class, String.class, Object.class))
 				.setAccessible(true);
+		//
+		(METHOD_GET_PORT = clz.getDeclaredMethod("getPort", HostAndPort.class, Integer.TYPE)).setAccessible(true);
 		//
 		final Class<?>[] declaredClasses = clz != null ? clz.getDeclaredClasses() : null;
 		//
@@ -1032,6 +1035,16 @@ public class KeyStoreSslSshReportTest {
 		//
 		Assert.assertNull(
 				invoke(METHOD_EVALUATE, null, invoke(METHOD_NEW_XPATH, null, XPathFactory.newInstance()), null, null));
+		//
+	}
+
+	@Test
+	public void testGetPort() throws IllegalAccessException, InvocationTargetException {
+		//
+		final int integer = 0;
+		//
+		Assert.assertEquals(invoke(METHOD_GET_PORT, null, HostAndPort.fromHost("127.0.0.1"), integer),
+				Integer.valueOf(integer));
 		//
 	}
 

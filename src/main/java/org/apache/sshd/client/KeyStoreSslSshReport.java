@@ -689,9 +689,9 @@ public class KeyStoreSslSshReport {
 			//
 			try (final ClientSession clientSession = testAndApply(
 					(a, b) -> Boolean.logicalAnd(a != null, StringUtils.isNotEmpty(b)),
-					getUsername(basicCredentialsProvider), getHost(hostAndPort), (a,
-							b) -> getSession(verify(connect(sshClient, a, b,
-									hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : 22))),
+					getUsername(basicCredentialsProvider), getHost(hostAndPort),
+					(a, b) -> getSession(
+							verify(connect(sshClient, a, b, hasPort(hostAndPort) ? getPort(hostAndPort, 22) : 22))),
 					null)) {
 				//
 				testAndAccept(Objects::nonNull, getPassword(basicCredentialsProvider),
@@ -744,6 +744,14 @@ public class KeyStoreSslSshReport {
 			//
 		return map;
 		//
+	}
+
+	private static boolean hasPort(final HostAndPort instance) {
+		return instance != null && instance.hasPort();
+	}
+
+	private static int getPort(final HostAndPort instance, final int defaultValue) {
+		return instance != null && hasPort(instance) ? instance.getPort() : defaultValue;
 	}
 
 	private static void addPublicKeyIdentity(final ClientAuthenticationManager instance, final KeyPair keyPair) {
