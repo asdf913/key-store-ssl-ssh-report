@@ -192,7 +192,7 @@ public class KeyStoreSslSshReport {
 			final String url = get(map, "url");
 			//
 			forEach(perform(Reflection.newProxy(ObjectMap.class, ih),
-					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, url, null),
+					Collections.singletonMap(get(map, "file"), get(map, "keyStorePassword")), null, url, null, null),
 					x -> info(LOG, x, StringUtils.length(url)));
 			//
 		} // if
@@ -284,6 +284,8 @@ public class KeyStoreSslSshReport {
 						getStrings(cast(NodeList.class, evaluate(xp, "/*/*/*/url", document, XPathConstants.NODESET)))),
 				x -> StreamSupport.stream(x, false), null), StringUtils::length)), 0);
 		//
+		Map<File, KeyPair> keyPairs = null;
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -318,7 +320,9 @@ public class KeyStoreSslSshReport {
 					//
 				forEach(perform(Reflection.newProxy(ObjectMap.class, ih), map,
 						table = ObjectUtils.getIfNull(table, HashBasedTable::create), url,
-						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new)), x -> info(LOG, x, maxUrlLength));
+						entries = ObjectUtils.getIfNull(entries, LinkedHashMap::new),
+						keyPairs = ObjectUtils.getIfNull(keyPairs, LinkedHashMap::new)),
+						x -> info(LOG, x, maxUrlLength));
 				//
 			} // for
 				//
@@ -556,7 +560,7 @@ public class KeyStoreSslSshReport {
 
 	private static Iterable<Result> perform(final ObjectMap objectMap, final Map<String, String> keyStoreFiles,
 			final Table<HostAndPort, String, byte[]> table, final String url,
-			final Map<String, Entry<String, Date>> entries) throws Exception {
+			final Map<String, Entry<String, Date>> entries, final Map<File, KeyPair> keyPairs) throws Exception {
 		//
 		if (keyStoreFiles == null || keyStoreFiles.isEmpty()) {
 			//
@@ -581,7 +585,7 @@ public class KeyStoreSslSshReport {
 			//
 			if ((bs = get(table, hostAndPort, getKey(entry))) == null
 					&& (stringByteArrayMap = readByteArrays(hostAndPort, basicCredentialsProvider,
-							ObjectMap.getObject(objectMap, File.class), keySet(keyStoreFiles))) != null) {
+							ObjectMap.getObject(objectMap, File.class), keyPairs, keySet(keyStoreFiles))) != null) {
 				//
 				for (final Entry<String, byte[]> stringByteArray : entrySet(stringByteArrayMap)) {
 					//
@@ -676,7 +680,7 @@ public class KeyStoreSslSshReport {
 	}
 
 	private static Map<String, byte[]> readByteArrays(final HostAndPort hostAndPort,
-			final BasicCredentialsProvider basicCredentialsProvider, final File key,
+			final BasicCredentialsProvider basicCredentialsProvider, final File key, final Map<File, KeyPair> keyPairs,
 			final Iterable<String> keyStoreFiles) throws Exception {
 		//
 		Map<String, byte[]> map = null;
@@ -697,12 +701,18 @@ public class KeyStoreSslSshReport {
 				testAndAccept(Objects::nonNull, getPassword(basicCredentialsProvider),
 						x -> addPasswordIdentity(clientSession, x));
 				//
-				testAndAccept(Objects::nonNull,
-						testAndApply(x -> x != null && x.size() == 1,
-								testAndApply(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
-										x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null), null),
-								x -> new ArrayList<>(x).get(0), null),
-						x -> addPublicKeyIdentity(clientSession, x));
+				KeyPair keyPair = get(keyPairs, key);
+				//
+				if (keyPair == null) {
+					//
+					put(keyPairs, key, keyPair = testAndApply(x -> x != null && x.size() == 1,
+							testAndApply(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
+									x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null), null),
+							x -> new ArrayList<>(x).get(0), null));
+					//
+				} // if
+					//
+				testAndAccept(Objects::nonNull, keyPair, x -> addPublicKeyIdentity(clientSession, x));
 				//
 				try (final SftpFileSystem sftpFileSystem = isSuccess(verify(auth(clientSession)))
 						? createSftpFileSystem(SftpClientFactory.instance(), clientSession)
