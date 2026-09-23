@@ -705,7 +705,7 @@ public class KeyStoreSslSshReport {
 				//
 				if (keyPair == null) {
 					//
-					put(keyPairs, key, keyPair = testAndApply(x -> x != null && x.size() == 1,
+					put(keyPairs, key, keyPair = testAndApply(x -> size(x) == 1,
 							testAndApply(x -> Boolean.logicalAnd(exists(x), isFile(x)), key,
 									x -> loadKeyPairs(PuttyKeyUtils.DEFAULT_INSTANCE, null, toPath(x), null), null),
 							x -> new ArrayList<>(x).get(0), null));
