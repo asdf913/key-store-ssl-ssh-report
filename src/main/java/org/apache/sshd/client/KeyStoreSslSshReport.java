@@ -105,6 +105,7 @@ import org.d2ab.function.ObjIntPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -286,6 +287,8 @@ public class KeyStoreSslSshReport {
 		//
 		Map<File, KeyPair> keyPairs = null;
 		//
+		NamedNodeMap attributes = null;
+		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
 			if ((urls = getStrings(cast(NodeList.class,
@@ -304,17 +307,18 @@ public class KeyStoreSslSshReport {
 				//
 				if ((objectMap = Reflection.newProxy(ObjectMap.class, ih = new IH())) != null) {
 					//
-					objectMap.setObject(HostAndPort.class,
-							testAndApply(Objects::nonNull, Objects.toString(evaluate(xp, "ip", node)), x -> HostAndPort
-									.fromParts(x, NumberUtils.toInt(Objects.toString(evaluate(xp, "port", n)), 22)),
-									null));
+					objectMap.setObject(HostAndPort.class, testAndApply(Objects::nonNull,
+							getNodeValue(getNamedItem(attributes = getAttributes(node), "ip")),
+							x -> HostAndPort.fromParts(x,
+									NumberUtils.toInt(getNodeValue(getNamedItem(getAttributes(n), "port")), 22)),
+							null));
 					//
-					objectMap.setObject(BasicCredentialsProvider.class, new BasicCredentialsImpl(
-							Objects.toString(evaluate(xp, "user", node)),
-							getTextContent(cast(Node.class, evaluate(xp, PASSWORD, node, XPathConstants.NODE)))));
+					objectMap.setObject(BasicCredentialsProvider.class,
+							new BasicCredentialsImpl(getNodeValue(getNamedItem(attributes, "user")),
+									getNodeValue(getNamedItem(attributes, PASSWORD))));
 					//
 					objectMap.setObject(File.class, testAndApply(StringUtils::isNotBlank,
-							Objects.toString(evaluate(xp, "keyPath", node)), File::new, null));
+							getNodeValue(getNamedItem(attributes, "keyPath")), File::new, null));
 					//
 				} // if
 					//
@@ -328,6 +332,18 @@ public class KeyStoreSslSshReport {
 				//
 		} // for
 			//
+	}
+
+	private static String getNodeValue(final Node instance) {
+		return instance != null ? instance.getNodeValue() : null;
+	}
+
+	private static Node getNamedItem(final NamedNodeMap instance, final String key) {
+		return instance != null ? instance.getNamedItem(key) : null;
+	}
+
+	private static NamedNodeMap getAttributes(final Node instance) {
+		return instance != null ? instance.getAttributes() : null;
 	}
 
 	private static int orElse(final OptionalInt instance, final int defaultValue) {

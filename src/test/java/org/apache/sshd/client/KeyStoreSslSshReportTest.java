@@ -80,6 +80,7 @@ import org.testng.annotations.Test;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -319,7 +320,12 @@ public class KeyStoreSslSshReportTest {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Node && Objects.equals(name, "getTextContent")) {
+			} else if (proxy instanceof Node
+					&& contains(Arrays.asList("getTextContent", "getAttributes", "getNodeValue"), name)) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof NamedNodeMap && Objects.equals(name, "getNamedItem")) {
 				//
 				return null;
 				//
@@ -979,7 +985,7 @@ public class KeyStoreSslSshReportTest {
 	}
 
 	@Test
-	public void testPeform() throws Throwable {
+	public void testPerform() throws Throwable {
 		//
 		final DocumentBuilder db = cast(DocumentBuilder.class,
 				Narcissus.invokeStaticMethod(METHOD_NEW_DOCUMENT_BUILDER, DocumentBuilderFactory.newInstance()));
@@ -988,15 +994,17 @@ public class KeyStoreSslSshReportTest {
 		//
 		final Node hosts = appendChild(document, createElement(document, "hosts"));
 		//
-		final Node host = appendChild(hosts, createElement(document, "host"));
+		final Element host = createElement(document, "host");
 		//
-		appendChild(host, createElement(document, "ip"));
+		appendChild(hosts, host);
 		//
-		appendChild(host, createElement(document, "port"));
+		setAttribute(host, "ip", null);
 		//
-		appendChild(host, createElement(document, "user"));
+		setAttribute(host, "port", null);
 		//
-		appendChild(host, createElement(document, "password"));
+		setAttribute(host, "user", null);
+		//
+		setAttribute(host, "password", null);
 		//
 		Node node = appendChild(host, createElement(document, "urls"));
 		//
@@ -1012,6 +1020,12 @@ public class KeyStoreSslSshReportTest {
 		Assert.assertNull(
 				invoke(METHOD_PERFORM, null, document, invoke(METHOD_NEW_XPATH, null, XPathFactory.newInstance())));
 		//
+	}
+
+	private static void setAttribute(final Element instance, final String key, final String value) {
+		if (instance != null) {
+			instance.setAttribute(key, value);
+		}
 	}
 
 	private static Element createElement(final Document instance, final String tagName) throws DOMException {
